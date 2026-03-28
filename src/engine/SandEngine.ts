@@ -21,6 +21,7 @@ export class SandEngine {
     liquidCount: 0,
     solidCount: 0
   };
+  public heldElement: { id: number; temp: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number, cellSize: number = 4) {
     this.canvas = canvas;
@@ -406,8 +407,14 @@ export class SandEngine {
         this.interactShockwave(x, y);
     }
 
+    // Pipe interactions
+    if (element.id >= 272 && element.id <= 275) {
+        this.interactPipe(x, y, element.id);
+    }
+
     // Life form interactions
     if (element.id === 256) this.interactHuman(x, y);
+    if (element.id === 276) this.interactHumanBody(x, y);
     if (element.id === 257) this.interactCat(x, y);
     if (element.id === 258) this.interactDog(x, y);
     if (element.id === 259) this.interactRat(x, y);
@@ -896,8 +903,39 @@ export class SandEngine {
     }
   }
 
+  interactPipe(x: number, y: number, pipeId: number) {
+    // Pipes move elements in their direction
+    let dx = 0, dy = 0;
+    let sourceDx = 0, sourceDy = 0;
+
+    if (pipeId === 272) { dx = 1; sourceDx = -1; } // Right
+    if (pipeId === 273) { dx = -1; sourceDx = 1; } // Left
+    if (pipeId === 274) { dy = -1; sourceDy = 1; } // Up
+    if (pipeId === 275) { dy = 1; sourceDy = -1; } // Down
+
+    // Try to pull from source
+    const sourceIdx = this.getIndex(x + sourceDx, y + sourceDy);
+    if (sourceIdx !== -1) {
+        const sourceId = this.grid[sourceIdx];
+        const sourceEl = ELEMENTS[sourceId];
+        if (sourceId !== 0 && sourceEl.type !== 'solid' && sourceId !== pipeId) {
+            // Try to push to destination
+            const destIdx = this.getIndex(x + dx, y + dy);
+            if (destIdx !== -1) {
+                const destId = this.grid[destIdx];
+                if (destId === 0 || ELEMENTS[destId].type === 'liquid' || ELEMENTS[destId].type === 'powder') {
+                    // Move through pipe
+                    this.nextGrid[destIdx] = sourceId;
+                    this.nextTempGrid[destIdx] = this.tempGrid[sourceIdx];
+                    this.nextGrid[sourceIdx] = 0;
+                }
+            }
+        }
+    }
+  }
+
   interactHuman(x: number, y: number) {
-    // Humans walk on solids, eat food, drink water, and die from hazards
+    // Humans are 2 pixels tall: Head (256) and Body (276)
     const idx = this.getIndex(x, y);
     const below = this.getElementAt(x, y + 1);
     
@@ -909,9 +947,23 @@ export class SandEngine {
       }
     }
 
+    // Try to maintain body
     if (below.id === 0) {
-      this.updatePowder(x, y, ELEMENTS[256]);
-      return;
+        // Fall
+        if (this.canMoveTo(x, y + 1, ELEMENTS[256])) {
+            this.moveElement(x, y, x, y + 1);
+        }
+        return;
+    }
+
+    if (below.id !== 276) {
+        // If no body, try to create one or die
+        if (below.id === 0 || below.type === 'liquid' || below.type === 'powder') {
+            this.nextGrid[this.getIndex(x, y + 1)] = 276;
+        } else {
+            // No space for body, maybe die?
+            if (Math.random() < 0.01) this.die(x, y);
+        }
     }
 
     // Feeding and drinking
@@ -923,20 +975,58 @@ export class SandEngine {
         if (Math.random() < 0.1) this.spawn(x, y, 256); // Reproduce
         return;
       }
-      if (target.id === 3) { // Drink water
-        if (Math.random() < 0.01) {
-          // Just a visual effect or something? No, let's just say they are happy.
-        }
-      }
     }
 
     // Movement
     if (Math.random() < 0.1) {
       const dx = Math.random() > 0.5 ? 1 : -1;
-      if (this.getElementAt(x + dx, y).id === 0 && (this.getElementAt(x + dx, y + 1).type === 'solid' || this.getElementAt(x + dx, y + 1).type === 'powder')) {
-        this.moveElement(x, y, x + dx, y);
+      // Move head AND body
+      if (this.getElementAt(x + dx, y).id === 0 && this.getElementAt(x + dx, y + 1).id === 0) {
+          const bodyIdx = this.getIndex(x, y + 1);
+          if (this.grid[bodyIdx] === 276) {
+              this.moveElement(x, y, x + dx, y);
+              this.moveElement(x, y + 1, x + dx, y + 1);
+          }
       }
     }
+  }
+
+  interactHumanBody(x: number, y: number) {
+      // Body needs a head above it
+      const above = this.getElementAt(x, y - 1);
+      if (above.id !== 256 && above.id !== 270) { // Head or Zombie
+          // Die if headless
+          if (Math.random() < 0.1) {
+              this.nextGrid[this.getIndex(x, y)] = 271; // Blood
+          }
+      }
+  }
+
+  pickUp(x: number, y: number) {
+      const idx = this.getIndex(x, y);
+      if (idx !== -1 && this.grid[idx] !== 0 && this.grid[idx] !== 1) {
+          this.heldElement = {
+              id: this.grid[idx],
+              temp: this.tempGrid[idx]
+          };
+          this.nextGrid[idx] = 0;
+          this.grid[idx] = 0;
+          return true;
+      }
+      return false;
+  }
+
+  dropHeld(x: number, y: number) {
+      if (this.heldElement) {
+          const idx = this.getIndex(x, y);
+          if (idx !== -1 && this.grid[idx] === 0) {
+              this.nextGrid[idx] = this.heldElement.id;
+              this.nextTempGrid[idx] = this.heldElement.temp;
+              this.heldElement = null;
+              return true;
+          }
+      }
+      return false;
   }
 
   interactCat(x: number, y: number) {

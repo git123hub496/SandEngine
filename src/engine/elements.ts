@@ -278,7 +278,7 @@ export const ELEMENTS: Record<number, Element> = {
   253: { id: 253, name: 'AntiGravity', type: 'special', color: '#000000', density: 0 },
   254: { id: 254, name: 'Metal Block', type: 'solid', color: '#7f8c8d', density: 500, conductive: true, flammability: 0, stateChange: { to: 10, temp: 1000, above: true } },
   255: { id: 255, name: 'Molten Plastic', type: 'liquid', color: '#d5dbdb', density: 12, viscosity: 0.1, flammability: 0.8, temperature: 250, stateChange: { to: 99, temp: 150, above: false } },
-  256: { id: 256, name: 'Human', type: 'special', color: '#ffdbac', density: 15, flammability: 0.3 },
+  256: { id: 256, name: 'Human', type: 'special', color: '#8d6e63', density: 15, flammability: 0.3 },
   257: { id: 257, name: 'Cat', type: 'special', color: '#f39c12', density: 12, flammability: 0.4 },
   258: { id: 258, name: 'Dog', type: 'special', color: '#8d6e63', density: 14, flammability: 0.4 },
   259: { id: 259, name: 'Rat', type: 'special', color: '#7f8c8d', density: 8, flammability: 0.5 },
@@ -294,4 +294,9 @@ export const ELEMENTS: Record<number, Element> = {
   269: { id: 269, name: 'Frog', type: 'special', color: '#4caf50', density: 10 },
   270: { id: 270, name: 'Zombie', type: 'special', color: '#607d8b', density: 10 },
   271: { id: 271, name: 'Blood', type: 'liquid', color: '#b71c1c', density: 6, viscosity: 0.8 },
+  272: { id: 272, name: 'Pipe Right', type: 'solid', color: '#546e7a', density: 1000 },
+  273: { id: 273, name: 'Pipe Left', type: 'solid', color: '#546e7a', density: 1000 },
+  274: { id: 274, name: 'Pipe Up', type: 'solid', color: '#546e7a', density: 1000 },
+  275: { id: 275, name: 'Pipe Down', type: 'solid', color: '#546e7a', density: 1000 },
+  276: { id: 276, name: 'Human Body', type: 'special', color: '#009688', density: 15 },
 };

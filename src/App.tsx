@@ -26,7 +26,7 @@ export default function App() {
   const [selectedElement, setSelectedElement] = useState<number>(2); // Default to Sand
   const [brushSize, setBrushSize] = useState<number>(2);
   const [isReplaceMode, setIsReplaceMode] = useState<boolean>(true);
-  const [toolType, setToolType] = useState<'brush' | 'mix' | 'paint'>('brush');
+  const [toolType, setToolType] = useState<'brush' | 'mix' | 'paint' | 'drag'>('brush');
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
   const [category, setCategory] = useState<string>('Land');
@@ -74,6 +74,16 @@ export default function App() {
         if (isMouseDown && (selectedElement === -1 || selectedElement === -2)) {
           applyTool(mousePos.x, mousePos.y);
         }
+
+        // Handle dragging visual
+        if (toolType === 'drag' && isMouseDown && engineRef.current.heldElement) {
+            const ctx = canvasRef.current?.getContext('2d');
+            if (ctx) {
+                const el = ELEMENTS[engineRef.current.heldElement.id];
+                ctx.fillStyle = el.color;
+                ctx.fillRect(screenMousePos.x - 4, screenMousePos.y - 4, 8, 8);
+            }
+        }
       }
       animationId = requestAnimationFrame(loop);
     };
@@ -98,9 +108,11 @@ export default function App() {
       const x = Math.floor((clientX - rect.left) / (engineRef.current?.cellSize || 1));
       const y = Math.floor((clientY - rect.top) / (engineRef.current?.cellSize || 1));
       setMousePos({ x, y });
-      setScreenMousePos({ x: clientX, y: clientY });
+      setScreenMousePos({ x: clientX - rect.left, y: clientY - rect.top });
       
-      if (selectedElement >= 0) {
+      if (toolType === 'drag' && engineRef.current) {
+        engineRef.current.pickUp(x, y);
+      } else if (selectedElement >= 0) {
         applyTool(x, y);
         soundManager.playPlace();
       }
@@ -121,15 +133,18 @@ export default function App() {
       const x = Math.floor((clientX - rect.left) / (engineRef.current?.cellSize || 1));
       const y = Math.floor((clientY - rect.top) / (engineRef.current?.cellSize || 1));
       setMousePos({ x, y });
-      setScreenMousePos({ x: clientX, y: clientY });
+      setScreenMousePos({ x: clientX - rect.left, y: clientY - rect.top });
 
-      if (isMouseDown && selectedElement >= 0) {
+      if (isMouseDown && toolType !== 'drag' && selectedElement >= 0) {
         applyTool(x, y);
       }
     }
   };
 
   const handleMouseUp = () => {
+    if (toolType === 'drag' && engineRef.current && isMouseDown) {
+      engineRef.current.dropHeld(mousePos.x, mousePos.y);
+    }
     setIsMouseDown(false);
   };
 
@@ -203,8 +218,8 @@ export default function App() {
     if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94, 221, 222, 223, 224, 225].includes(el.id);
     if (category === 'Gases') return el.type === 'gas' || [147, 148, 159, 160].includes(el.id);
     if (category === 'Energy') return el.type === 'fire' || [28, 154, 155, 156].includes(el.id);
-    if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 256, 257, 258, 259, 260, 267, 268, 269, 270].includes(el.id);
-    if (category === 'Machine') return [221, 222, 223, 224, 225].includes(el.id);
+    if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 256, 257, 258, 259, 260, 267, 268, 269, 270, 276].includes(el.id);
+    if (category === 'Machine') return [221, 222, 223, 224, 225, 272, 273, 274, 275].includes(el.id);
     if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 151, 152, 157, 158, 256, 257, 258, 259, 260, 261, 263].includes(el.id);
     if (category === 'Destructive') return [238, 239, 240, 241, 261, 262, 266].includes(el.id);
     return true;
@@ -337,6 +352,12 @@ export default function App() {
               className={`pixel-btn text-[10px] px-2 py-1 ${toolType === 'paint' ? 'active' : ''}`}
             >
               Paint
+            </button>
+            <button 
+              onClick={() => setToolType('drag')} 
+              className={`pixel-btn text-[10px] px-2 py-1 ${toolType === 'drag' ? 'active' : ''}`}
+            >
+              Drag
             </button>
           </div>
           
