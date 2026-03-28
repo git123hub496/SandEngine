@@ -32,6 +32,7 @@ export default function App() {
   const [category, setCategory] = useState<string>('Land');
   const [fps, setFps] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [screenMousePos, setScreenMousePos] = useState({ x: 0, y: 0 });
   const [hoverTemp, setHoverTemp] = useState(20);
   
   // Search states
@@ -97,6 +98,7 @@ export default function App() {
       const x = Math.floor((clientX - rect.left) / (engineRef.current?.cellSize || 1));
       const y = Math.floor((clientY - rect.top) / (engineRef.current?.cellSize || 1));
       setMousePos({ x, y });
+      setScreenMousePos({ x: clientX, y: clientY });
       
       if (selectedElement >= 0) {
         applyTool(x, y);
@@ -119,6 +121,7 @@ export default function App() {
       const x = Math.floor((clientX - rect.left) / (engineRef.current?.cellSize || 1));
       const y = Math.floor((clientY - rect.top) / (engineRef.current?.cellSize || 1));
       setMousePos({ x, y });
+      setScreenMousePos({ x: clientX, y: clientY });
 
       if (isMouseDown && selectedElement >= 0) {
         applyTool(x, y);
@@ -194,7 +197,7 @@ export default function App() {
         return false;
     }
 
-    if (category === 'Land') return [2, 4, 37, 38, 39, 76, 77, 78, 79, 80, 93, 94, 111, 112, 113, 114, 115, 116].includes(el.id);
+    if (category === 'Land') return [2, 4, 18, 37, 38, 39, 76, 77, 78, 79, 80, 93, 94, 98, 99, 111, 112, 113, 114, 115, 116, 254].includes(el.id);
     if (category === 'Liquids') return el.type === 'liquid';
     if (category === 'Powders') return el.type === 'powder' && ![2, 37, 38, 39, 76, 77, 78, 79, 80, 111, 112, 113, 114, 115, 116].includes(el.id);
     if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94, 221, 222, 223, 224, 225].includes(el.id);
@@ -207,7 +210,21 @@ export default function App() {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white overflow-hidden font-sans select-none">
+    <div className="flex flex-col h-screen bg-black text-white overflow-hidden font-sans select-none cursor-none">
+      {/* Custom Pixel Cursor */}
+      <div 
+        className="fixed pointer-events-none z-[9999] w-8 h-8"
+        style={{ 
+          left: screenMousePos.x, 
+          top: screenMousePos.y,
+          transform: 'translate(-2px, -2px)'
+        }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 0V18L5 13L8 19L11 17L8 11H14L0 0Z" fill="black" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
+        </svg>
+      </div>
+
       {/* Simulation Area */}
       <main className="flex-1 relative cursor-none touch-none overflow-hidden bg-black">
         <canvas 
@@ -240,7 +257,7 @@ export default function App() {
           <div className="w-1 h-1 bg-white rounded-full opacity-50" />
           
           {/* Hover Temp Label */}
-          <div className="absolute -top-6 bg-black/80 px-1 py-0.5 rounded text-[6px] border border-white/20 whitespace-nowrap">
+          <div className="absolute -top-6 bg-black/80 px-1 py-0.5 rounded text-[8px] border border-white/20 whitespace-nowrap">
             {hoverTemp}°C
           </div>
         </div>
@@ -249,7 +266,7 @@ export default function App() {
       {/* Retro UI Panel */}
       <div className="pixel-panel flex flex-col p-2 gap-2">
         {/* Top Info Bar */}
-        <div className="flex items-center justify-between px-2 py-1 text-[8px] font-mono text-gray-400 border-b border-[#222] mb-1">
+        <div className="flex items-center justify-between px-2 py-1 text-[10px] font-mono text-gray-400 border-b border-[#222] mb-1">
           <div className="flex gap-4">
             <span>x{mousePos.x}, y{mousePos.y}</span>
             <span>{fps}fps</span>
@@ -275,9 +292,9 @@ export default function App() {
             Load
           </button>
           <div className="flex items-center gap-2 bg-[#222] px-2 py-1 border-2 border-[#444]">
-            <span className="text-[8px] text-gray-500">Brush:</span>
+            <span className="text-[10px] text-gray-500">Brush:</span>
             <button onClick={() => setBrushSize(Math.max(1, brushSize - 1))} className="pixel-btn p-1 h-6 w-6">-</button>
-            <span className="text-[10px] w-6 text-center">{brushSize}</span>
+            <span className="text-[12px] w-6 text-center">{brushSize}</span>
             <button onClick={() => setBrushSize(Math.min(15, brushSize + 1))} className="pixel-btn p-1 h-6 w-6">+</button>
           </div>
           <button onClick={() => setSelectedElement(0)} className={`pixel-btn ${selectedElement === 0 ? 'active' : 'bg-purple-900 text-purple-400'}`}>
@@ -291,32 +308,32 @@ export default function App() {
           </button>
 
           <div className="flex items-center gap-1 bg-[#222] px-2 py-1 border-2 border-[#444]">
-            <span className="text-[8px] text-gray-500 uppercase">Mode:</span>
+            <span className="text-[10px] text-gray-500 uppercase">Mode:</span>
             <button 
               onClick={() => setIsReplaceMode(!isReplaceMode)} 
-              className={`pixel-btn text-[8px] px-2 py-1 ${isReplaceMode ? 'bg-orange-900 text-orange-400' : 'bg-gray-800 text-gray-400'}`}
+              className={`pixel-btn text-[10px] px-2 py-1 ${isReplaceMode ? 'bg-orange-900 text-orange-400' : 'bg-gray-800 text-gray-400'}`}
             >
               {isReplaceMode ? 'Replace: ON' : 'Replace: OFF'}
             </button>
           </div>
 
           <div className="flex items-center gap-1 bg-[#222] px-2 py-1 border-2 border-[#444]">
-            <span className="text-[8px] text-gray-500 uppercase">Tool:</span>
+            <span className="text-[10px] text-gray-500 uppercase">Tool:</span>
             <button 
               onClick={() => setToolType('brush')} 
-              className={`pixel-btn text-[8px] px-2 py-1 ${toolType === 'brush' ? 'active' : ''}`}
+              className={`pixel-btn text-[10px] px-2 py-1 ${toolType === 'brush' ? 'active' : ''}`}
             >
               Brush
             </button>
             <button 
               onClick={() => setToolType('mix')} 
-              className={`pixel-btn text-[8px] px-2 py-1 ${toolType === 'mix' ? 'active' : ''}`}
+              className={`pixel-btn text-[10px] px-2 py-1 ${toolType === 'mix' ? 'active' : ''}`}
             >
               Mix
             </button>
             <button 
               onClick={() => setToolType('paint')} 
-              className={`pixel-btn text-[8px] px-2 py-1 ${toolType === 'paint' ? 'active' : ''}`}
+              className={`pixel-btn text-[10px] px-2 py-1 ${toolType === 'paint' ? 'active' : ''}`}
             >
               Paint
             </button>
@@ -330,7 +347,7 @@ export default function App() {
               placeholder="SEARCH..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent border-none outline-none text-[8px] w-full placeholder:text-gray-700 uppercase"
+              className="bg-transparent border-none outline-none text-[10px] w-full placeholder:text-gray-700 uppercase"
             />
           </div>
         </div>
@@ -341,7 +358,7 @@ export default function App() {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`pixel-btn px-2 py-1 text-[7px] ${category === cat ? 'active' : 'bg-[#222] text-gray-400'}`}
+              className={`pixel-btn px-2 py-1 text-[10px] ${category === cat ? 'active' : 'bg-[#222] text-gray-400'}`}
             >
               {cat}
             </button>
@@ -349,7 +366,7 @@ export default function App() {
         </div>
 
         {category === 'Machine' && (
-          <div className="mt-1 p-1 bg-[#1a1a1a] border border-[#333] text-[7px] text-gray-400 font-mono animate-pulse">
+          <div className="mt-1 p-1 bg-[#1a1a1a] border border-[#333] text-[10px] text-gray-400 font-mono animate-pulse">
             <span className="text-yellow-500">GUIDE:</span> Connect <span className="text-green-500">BATTERY</span> to <span className="text-yellow-400">WIRE</span> to power machines. <span className="text-purple-500">CLONE WALL</span> duplicates elements on top of it when powered!
           </div>
         )}
@@ -374,7 +391,7 @@ export default function App() {
                 </button>
               ))
             ) : (
-              <div className="text-[8px] text-gray-600 italic py-4 px-2">NO ELEMENTS FOUND...</div>
+              <div className="text-[10px] text-gray-600 italic py-4 px-2">NO ELEMENTS FOUND...</div>
             )}
           </div>
         </div>

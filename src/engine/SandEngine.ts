@@ -15,6 +15,7 @@ export class SandEngine {
   ctx: CanvasRenderingContext2D;
   cellSize: number;
   frameCount: number = 0;
+  cloneTargets: Map<number, number> = new Map();
   public stats = {
     fireCount: 0,
     liquidCount: 0,
@@ -96,12 +97,15 @@ export class SandEngine {
       }
     }
     this.powerGrid.set(this.nextPowerGrid);
-    for (let y = 0; y < this.height; y++) {
-      for (let x = this.width - 1; x >= 0; x--) {
-        this.updatePower(x, y);
+    // Update power grid (multiple passes for faster propagation)
+    for (let pass = 0; pass < 5; pass++) {
+      for (let y = 0; y < this.height; y++) {
+        for (let x = this.width - 1; x >= 0; x--) {
+          this.updatePower(x, y);
+        }
       }
+      this.powerGrid.set(this.nextPowerGrid);
     }
-    this.powerGrid.set(this.nextPowerGrid);
 
     // Update from bottom to top, left to right for gravity
     for (let y = this.height - 1; y >= 0; y--) {
@@ -180,18 +184,15 @@ export class SandEngine {
   }
 
   interactCloneWall(x: number, y: number) {
-    // Clone whatever is on top of it
-    const topIdx = this.getIndex(x, y - 1);
-    if (topIdx !== -1) {
-      const sourceId = this.grid[topIdx];
-      if (sourceId !== 0 && sourceId !== 225 && sourceId !== 1) { // Don't clone empty, wall, or other clone walls
-        // Output to bottom if empty
-        const bottomIdx = this.getIndex(x, y + 1);
-        if (bottomIdx !== -1 && this.grid[bottomIdx] === 0) {
-          this.nextGrid[bottomIdx] = sourceId;
-          this.nextTempGrid[bottomIdx] = this.tempGrid[topIdx];
-        }
-      }
+    const idx = this.getIndex(x, y);
+    const targetId = this.cloneTargets.get(idx);
+    if (targetId === undefined) return;
+
+    // Output to bottom if empty
+    const bottomIdx = this.getIndex(x, y + 1);
+    if (bottomIdx !== -1 && this.grid[bottomIdx] === 0) {
+      this.nextGrid[bottomIdx] = targetId;
+      this.nextTempGrid[bottomIdx] = 20; // Default temp for cloned elements
     }
   }
 
@@ -406,11 +407,23 @@ export class SandEngine {
         this.moveElement(x, y, x - dir, y + 1);
       } else {
         // Try horizontal flow
-        const flowRange = 3;
         if (this.canMoveTo(x + dir, y, element)) {
           this.moveElement(x, y, x + dir, y);
         } else if (this.canMoveTo(x - dir, y, element)) {
           this.moveElement(x, y, x - dir, y);
+        } else {
+          // Aggressive gap filling: if there's air (ID 0) nearby, move into it
+          // This prevents trapped air bubbles
+          const neighbors = [[x, y-1], [x+1, y], [x-1, y], [x, y+1]];
+          for (const [nx, ny] of neighbors) {
+            const nIdx = this.getIndex(nx, ny);
+            if (nIdx !== -1 && this.grid[nIdx] === 0 && this.nextGrid[nIdx] === 0) {
+              if (Math.random() < 0.1) { // Small chance to "jump" into gaps
+                this.moveElement(x, y, nx, ny);
+                break;
+              }
+            }
+          }
         }
       }
     }
@@ -864,7 +877,9 @@ export class SandEngine {
       // Add texture (per-pixel noise)
       // Use a more complex hash to avoid repeating patterns
       const hash = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
-      const noise = (hash - Math.floor(hash)) * 30 - 15; // -15 to +15 range
+      let noiseRange = 30;
+      if (ELEMENTS[elementId].type === 'liquid') noiseRange = 10; // More subtle for liquids
+      const noise = (hash - Math.floor(hash)) * noiseRange - (noiseRange / 2);
       
       r = Math.max(0, Math.min(255, r + noise));
       g = Math.max(0, Math.min(255, g + noise));

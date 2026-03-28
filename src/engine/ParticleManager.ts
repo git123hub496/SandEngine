@@ -57,22 +57,20 @@ export class ParticleManager {
   render(ctx: CanvasRenderingContext2D, cellSize: number) {
     ctx.save();
     for (const p of this.particles) {
+      // Quantize alpha to 4 discrete steps for a "pixely" feel
       const alpha = 1 - (p.life / p.maxLife);
-      ctx.globalAlpha = alpha;
+      const quantizedAlpha = Math.ceil(alpha * 4) / 4;
+      ctx.globalAlpha = quantizedAlpha;
       ctx.fillStyle = p.color;
       
-      if (p.type === 'bubble') {
-        ctx.beginPath();
-        ctx.arc(p.x * cellSize, p.y * cellSize, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(
-          Math.floor(p.x) * cellSize, 
-          Math.floor(p.y) * cellSize, 
-          cellSize * p.size, 
-          cellSize * p.size
-        );
-      }
+      // Use square pixels for everything, no smooth arcs
+      const size = Math.max(1, Math.floor(p.size));
+      ctx.fillRect(
+        Math.floor(p.x) * cellSize, 
+        Math.floor(p.y) * cellSize, 
+        cellSize * size, 
+        cellSize * size
+      );
     }
     ctx.restore();
   }
