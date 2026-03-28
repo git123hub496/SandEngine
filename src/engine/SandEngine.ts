@@ -209,6 +209,21 @@ export class SandEngine {
       this.interactLava(x, y);
     }
 
+    // Napalm interaction
+    if (element.id === 216) {
+      this.interactNapalm(x, y);
+    }
+
+    // Helium interaction
+    if (element.id === 217) {
+      this.interactHelium(x, y);
+    }
+
+    // Molten interaction
+    if ([211, 212, 213, 214, 215, 219, 220].includes(element.id)) {
+      this.interactMolten(x, y);
+    }
+
     // Virus interaction
     if (element.id === 21) { // Virus
       this.interactVirus(x, y);
@@ -394,6 +409,47 @@ export class SandEngine {
         this.nextGrid[this.getIndex(nx, ny)] = 11; // Steam
         this.nextGrid[this.getIndex(x, y)] = 35; // Obsidian
       } else if (target.flammability && Math.random() < 0.5) {
+        this.nextGrid[this.getIndex(nx, ny)] = 6; // Ignite
+      }
+    }
+  }
+
+  interactNapalm(x: number, y: number) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.flammability && Math.random() < 0.8) {
+        this.nextGrid[this.getIndex(nx, ny)] = 6; // Ignite
+      }
+    }
+    // Napalm itself burns
+    if (Math.random() < 0.05) {
+      this.nextGrid[this.getIndex(x, y)] = 6;
+    }
+  }
+
+  interactHelium(x: number, y: number) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      // Freeze water to ice
+      if (target.id === 3) {
+        this.nextGrid[this.getIndex(nx, ny)] = 12; // Ice
+      }
+      // Put out fire
+      if (target.id === 6) {
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+      }
+    }
+  }
+
+  interactMolten(x: number, y: number) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 3) { // Water
+        this.nextGrid[this.getIndex(nx, ny)] = 11; // Steam
+      } else if (target.flammability && Math.random() < 0.3) {
         this.nextGrid[this.getIndex(nx, ny)] = 6; // Ignite
       }
     }
@@ -645,7 +701,14 @@ export class SandEngine {
   }
 
   canMoveTo(x: number, y: number, element: Element) {
-    const target = this.getElementAt(x, y);
+    const idx = this.getIndex(x, y);
+    if (idx === -1) return false;
+
+    // CRITICAL: Check if the spot in nextGrid has already been claimed this frame
+    // If nextGrid[idx] != grid[idx], it means another particle already moved here.
+    if (this.nextGrid[idx] !== this.grid[idx]) return false;
+
+    const target = ELEMENTS[this.grid[idx]];
     if (target.id === 0) return true;
     
     // Density check: heavier things sink in lighter things

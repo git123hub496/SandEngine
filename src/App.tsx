@@ -195,7 +195,7 @@ export default function App() {
     }
 
     if (category === 'Land') return [2, 4, 37, 38, 39, 76, 77, 78, 79, 80, 93, 94, 111, 112, 113, 114, 115, 116].includes(el.id);
-    if (category === 'Liquids') return el.type === 'liquid' || [165, 174, 177, 178, 179].includes(el.id);
+    if (category === 'Liquids') return el.type === 'liquid';
     if (category === 'Powders') return el.type === 'powder' && ![2, 37, 38, 39, 76, 77, 78, 79, 80, 111, 112, 113, 114, 115, 116].includes(el.id);
     if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94].includes(el.id);
     if (category === 'Gases') return el.type === 'gas' || [147, 148, 159, 160].includes(el.id);
