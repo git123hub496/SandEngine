@@ -253,6 +253,26 @@ export class SandEngine {
     if (element.id === 106) {
         this.interactBug(x, y);
     }
+
+    // Anti-matter interaction
+    if (element.id === 151) {
+        this.interactAntiMatter(x, y);
+    }
+
+    // Grass interaction
+    if (element.id === 141) {
+        this.interactGrass(x, y);
+    }
+
+    // Mushroom interaction
+    if (element.id === 150) {
+        this.interactMushroom(x, y);
+    }
+
+    // Popcorn interaction
+    if (element.id === 171) {
+        this.interactPopcorn(x, y);
+    }
   }
 
   updatePowder(x: number, y: number, element: Element) {
@@ -531,6 +551,71 @@ export class SandEngine {
             this.moveElement(x, y, x + dx, y - 1); // Climb
         }
     }
+  }
+
+  interactAntiMatter(x: number, y: number) {
+      const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+      for (const [nx, ny] of neighbors) {
+          const target = this.getElementAt(nx, ny);
+          if (target.id !== 0 && target.id !== 151 && target.id !== 1) {
+              this.nextGrid[this.getIndex(nx, ny)] = 0; // Annihilate
+              this.nextGrid[this.getIndex(x, y)] = 0; // Self-destruct
+              if (Math.random() < 0.5) {
+                  particleManager.addParticle(nx, ny, 'spark', '#ff00ff');
+              }
+          }
+      }
+  }
+
+  interactGrass(x: number, y: number) {
+      if (Math.random() > 0.05) return;
+      const below = this.getElementAt(x, y + 1);
+      if (below.type !== 'solid' && below.type !== 'powder' && below.id !== 141) {
+          this.nextGrid[this.getIndex(x, y)] = 0; // Needs support
+          return;
+      }
+
+      // Spread sideways or grow up
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dir, y).id === 0 && (this.getElementAt(x + dir, y + 1).type === 'solid' || this.getElementAt(x + dir, y + 1).type === 'powder')) {
+          this.nextGrid[this.getIndex(x + dir, y)] = 141;
+      } else if (this.getElementAt(x, y - 1).id === 0 && Math.random() < 0.1) {
+          this.nextGrid[this.getIndex(x, y - 1)] = 141;
+      }
+  }
+
+  interactMushroom(x: number, y: number) {
+      if (Math.random() > 0.01) return;
+      const below = this.getElementAt(x, y + 1);
+      if (below.type !== 'solid' && below.type !== 'powder' && below.id !== 150) {
+          this.nextGrid[this.getIndex(x, y)] = 0; // Needs support
+          return;
+      }
+
+      // Grow near water or soil
+      let fertile = false;
+      const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+      for (const [nx, ny] of neighbors) {
+          const target = this.getElementAt(nx, ny);
+          if (target.id === 3 || target.id === 37 || target.id === 20) {
+              fertile = true;
+              break;
+          }
+      }
+
+      if (fertile && Math.random() < 0.05) {
+          const rx = x + (Math.random() > 0.5 ? 1 : -1);
+          if (this.getElementAt(rx, y).id === 0 && (this.getElementAt(rx, y + 1).type === 'solid' || this.getElementAt(rx, y + 1).type === 'powder')) {
+              this.nextGrid[this.getIndex(rx, y)] = 150;
+          }
+      }
+  }
+
+  interactPopcorn(x: number, y: number) {
+      if (this.tempGrid[this.getIndex(x, y)] > 150 && Math.random() < 0.1) {
+          this.nextGrid[this.getIndex(x, y)] = 210; // Turn to Foam (proxy for popped popcorn)
+          particleManager.addParticle(x, y, 'smoke', '#ffffff');
+      }
   }
 
   saveState(): string {

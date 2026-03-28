@@ -16,13 +16,9 @@ import {
   Brush,
   Maximize,
   RotateCcw,
-  Search,
-  Sparkles,
-  Loader2,
-  Plus
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from "@google/genai";
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,11 +34,8 @@ export default function App() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoverTemp, setHoverTemp] = useState(20);
   
-  // Search and AI states
+  // Search states
   const [searchTerm, setSearchTerm] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [customElementIds, setCustomElementIds] = useState<number[]>([]);
 
   useEffect(() => {
     if (canvasRef.current && !engineRef.current) {
@@ -174,69 +167,6 @@ export default function App() {
     }
   };
 
-  const generateAIElement = async () => {
-    if (!aiPrompt.trim()) return;
-    setIsGenerating(true);
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Create a new falling sand element based on this prompt: "${aiPrompt}". 
-        Return a JSON object with: 
-        - name: string
-        - type: "solid", "powder", "liquid", "gas", "fire", or "special"
-        - color: hex string
-        - density: number (1-1000)
-        - viscosity: number (0-1, optional for liquids)
-        - friction: number (0-1, optional for powders)
-        - flammability: number (0-1, optional)
-        - longevity: number (optional for fire/gas)
-        - dissolvable: boolean (optional)
-        - conductive: boolean (optional)
-        - temperature: number (optional)`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ["solid", "powder", "liquid", "gas", "fire", "special"] },
-              color: { type: Type.STRING },
-              density: { type: Type.NUMBER },
-              viscosity: { type: Type.NUMBER },
-              friction: { type: Type.NUMBER },
-              flammability: { type: Type.NUMBER },
-              longevity: { type: Type.NUMBER },
-              dissolvable: { type: Type.BOOLEAN },
-              conductive: { type: Type.BOOLEAN },
-              temperature: { type: Type.NUMBER },
-            },
-            required: ["name", "type", "color", "density"]
-          }
-        }
-      });
-
-      const data = JSON.parse(response.text);
-      const newId = Math.max(...Object.keys(ELEMENTS).map(Number)) + 1;
-      
-      const newElement: Element = {
-        id: newId,
-        ...data
-      };
-
-      ELEMENTS[newId] = newElement;
-      setCustomElementIds(prev => [...prev, newId]);
-      setSelectedElement(newId);
-      setAiPrompt('');
-      setCategory('AI');
-    } catch (error) {
-      console.error("AI Generation failed:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleSave = () => {
     if (!engineRef.current) return;
     const state = engineRef.current.saveState();
@@ -254,7 +184,7 @@ export default function App() {
     }
   };
 
-  const categories = ['Land', 'Liquids', 'Life', 'Powders', 'Solids', 'Energy', 'Gases', 'Special', 'AI'];
+  const categories = ['Land', 'Liquids', 'Life', 'Powders', 'Solids', 'Energy', 'Gases', 'Special'];
   
   const filteredElements = Object.values(ELEMENTS).filter(el => {
     if (el.id === 0) return false;
@@ -264,15 +194,14 @@ export default function App() {
         return false;
     }
 
-    if (category === 'AI') return customElementIds.includes(el.id);
-    if (category === 'Land') return [2, 4, 37, 38, 39, 93, 94].includes(el.id);
-    if (category === 'Liquids') return el.type === 'liquid';
-    if (category === 'Powders') return el.type === 'powder' && ![2, 37, 38, 39].includes(el.id);
+    if (category === 'Land') return [2, 4, 37, 38, 39, 76, 77, 78, 79, 80, 93, 94, 111, 112, 113, 114, 115, 116].includes(el.id);
+    if (category === 'Liquids') return el.type === 'liquid' || [165, 174, 177, 178, 179].includes(el.id);
+    if (category === 'Powders') return el.type === 'powder' && ![2, 37, 38, 39, 76, 77, 78, 79, 80, 111, 112, 113, 114, 115, 116].includes(el.id);
     if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94].includes(el.id);
-    if (category === 'Gases') return el.type === 'gas';
-    if (category === 'Energy') return el.type === 'fire' || el.id === 28;
-    if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106].includes(el.id);
-    if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106].includes(el.id);
+    if (category === 'Gases') return el.type === 'gas' || [147, 148, 159, 160].includes(el.id);
+    if (category === 'Energy') return el.type === 'fire' || [28, 154, 155, 156].includes(el.id);
+    if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150].includes(el.id);
+    if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 151, 152, 157, 158].includes(el.id);
     return true;
   });
 
@@ -413,36 +342,10 @@ export default function App() {
               onClick={() => setCategory(cat)}
               className={`pixel-btn px-2 py-1 text-[7px] ${category === cat ? 'active' : 'bg-[#222] text-gray-400'}`}
             >
-              {cat === 'AI' ? <Sparkles size={8} className="mr-1" /> : null}
               {cat}
             </button>
           ))}
         </div>
-
-        {/* AI Generation Row */}
-        {category === 'AI' && (
-          <div className="flex gap-2 mt-1 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 bg-[#111] px-3 py-1 border-2 border-orange-900 flex-1">
-              <Sparkles size={12} className="text-orange-500" />
-              <input 
-                type="text" 
-                placeholder="DESCRIBE A NEW ELEMENT (E.G. 'GLOWING JELLY')..." 
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generateAIElement()}
-                className="bg-transparent border-none outline-none text-[8px] w-full placeholder:text-gray-700 uppercase"
-              />
-            </div>
-            <button 
-              onClick={generateAIElement}
-              disabled={isGenerating || !aiPrompt.trim()}
-              className="pixel-btn bg-orange-900 text-orange-400 disabled:opacity-50"
-            >
-              {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-              <span className="ml-1">CREATE</span>
-            </button>
-          </div>
-        )}
 
         {/* Elements Grid Row */}
         <div className="flex-1 overflow-x-auto custom-scrollbar pb-2 mt-1">
