@@ -375,6 +375,48 @@ export class SandEngine {
     if (element.id === 171) {
         this.interactPopcorn(x, y);
     }
+
+    // TNT, C4, Nuke, Grenade interaction
+    if ([238, 239, 240, 241].includes(element.id)) {
+        this.interactExplosive(x, y, element);
+    }
+
+    // Blazer interaction
+    if (element.id === 261) {
+        this.interactBlazer(x, y);
+    }
+
+    // Gun interaction
+    if (element.id === 262) {
+        this.interactGun(x, y);
+    }
+
+    // Bullet interaction
+    if (element.id === 263) {
+        this.interactBullet(x, y);
+    }
+
+    // Explosion interaction
+    if (element.id === 264) {
+        this.interactExplosion(x, y);
+    }
+
+    // Shockwave interaction
+    if (element.id === 265) {
+        this.interactShockwave(x, y);
+    }
+
+    // Life form interactions
+    if (element.id === 256) this.interactHuman(x, y);
+    if (element.id === 257) this.interactCat(x, y);
+    if (element.id === 258) this.interactDog(x, y);
+    if (element.id === 259) this.interactRat(x, y);
+    if (element.id === 260) this.interactBird(x, y);
+
+    // Longevity
+    if (element.longevity && Math.random() < 0.1) {
+        if (Math.random() > 0.9) this.nextGrid[this.getIndex(x, y)] = 0;
+    }
   }
 
   updatePowder(x: number, y: number, element: Element) {
@@ -446,11 +488,6 @@ export class SandEngine {
           this.moveElement(x, y, x + dir, y);
         }
       }
-    }
-
-    // Longevity
-    if (element.longevity && Math.random() < 0.05) {
-      if (Math.random() > 0.95) this.nextGrid[this.getIndex(x, y)] = 0;
     }
   }
 
@@ -674,22 +711,6 @@ export class SandEngine {
     }
   }
 
-  interactBird(x: number, y: number) {
-    // Birds fly
-    if (Math.random() < 0.3) {
-        const dx = Math.floor(Math.random() * 3) - 1;
-        const dy = Math.floor(Math.random() * 3) - 1 - (Math.random() < 0.1 ? 1 : 0); // Tendency to fly up
-        if (this.getElementAt(x + dx, y + dy).id === 0) {
-            this.moveElement(x, y, x + dx, y + dy);
-        }
-    }
-    // Land occasionally
-    const below = this.getElementAt(x, y + 1);
-    if (below.type === 'solid' && Math.random() < 0.01) {
-        // Stay still
-    }
-  }
-
   interactBug(x: number, y: number) {
     // Bugs crawl on solids
     const below = this.getElementAt(x, y + 1);
@@ -771,6 +792,211 @@ export class SandEngine {
           this.nextGrid[this.getIndex(x, y)] = 210; // Turn to Foam (proxy for popped popcorn)
           particleManager.addParticle(x, y, 'smoke', '#ffffff');
       }
+  }
+
+  interactExplosive(x: number, y: number, element: Element) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    let triggered = false;
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 6 || target.id === 28 || target.id === 264) { // Fire, Plasma, Explosion
+        triggered = true;
+        break;
+      }
+    }
+    if (this.tempGrid[this.getIndex(x, y)] > 100) triggered = true;
+
+    if (triggered) {
+      let radius = 5;
+      if (element.id === 239) radius = 10; // C4
+      if (element.id === 240) radius = 30; // Nuke
+      if (element.id === 241) radius = 8; // Grenade
+      this.explode(x, y, radius);
+    }
+  }
+
+  explode(x: number, y: number, radius: number) {
+    const r2 = radius * radius;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx * dx + dy * dy <= r2) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const idx = this.getIndex(nx, ny);
+          if (idx !== -1) {
+            const target = ELEMENTS[this.grid[idx]];
+            if (target.id !== 1) { // Don't destroy walls
+              if (Math.random() < 0.7) {
+                this.nextGrid[idx] = 264; // Explosion
+                this.nextTempGrid[idx] = 1000;
+              } else if (Math.random() < 0.3) {
+                this.nextGrid[idx] = 265; // Shockwave
+              }
+            }
+          }
+        }
+      }
+    }
+    particleManager.addParticle(x, y, 'smoke', '#ff9800');
+  }
+
+  interactBlazer(x: number, y: number) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id !== 0 && target.id !== 1 && target.id !== 261) {
+        this.nextGrid[this.getIndex(nx, ny)] = 0; // Destroy
+        if (Math.random() < 0.1) {
+          particleManager.addParticle(nx, ny, 'spark', '#ff5722');
+        }
+      }
+    }
+    // Blazer itself moves randomly
+    if (Math.random() < 0.2) {
+      const dx = Math.floor(Math.random() * 3) - 1;
+      const dy = Math.floor(Math.random() * 3) - 1;
+      if (this.getElementAt(x + dx, y + dy).id === 0) {
+        this.moveElement(x, y, x + dx, y + dy);
+      }
+    }
+  }
+
+  interactGun(x: number, y: number) {
+    // Guns fire bullets if they have power or randomly
+    if (Math.random() < 0.05) {
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      const nx = x + dir;
+      if (this.getElementAt(nx, y).id === 0) {
+        this.nextGrid[this.getIndex(nx, y)] = 263; // Bullet
+        this.nextTempGrid[this.getIndex(nx, y)] = dir; // Store direction in tempGrid
+      }
+    }
+  }
+
+  interactBullet(x: number, y: number) {
+    // Bullets move fast in the direction they were fired
+    const dx = this.tempGrid[this.getIndex(x, y)] || 1; 
+    const nx = x + Math.sign(dx);
+    const ny = y;
+    const target = this.getElementAt(nx, ny);
+    if (target.id === 0) {
+      this.moveElement(x, y, nx, ny);
+      this.nextTempGrid[this.getIndex(nx, ny)] = dx; // Carry over direction
+    } else if (target.id !== 1 && target.id !== 263) {
+      this.nextGrid[this.getIndex(nx, ny)] = 264; // Explosion on hit
+      this.nextGrid[this.getIndex(x, y)] = 0; // Bullet destroyed
+    } else {
+      this.nextGrid[this.getIndex(x, y)] = 0; // Hit wall or another bullet
+    }
+  }
+
+  interactExplosion(x: number, y: number) {
+    // Explosions expand and die out
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 0 && Math.random() < 0.2) {
+        this.nextGrid[this.getIndex(nx, ny)] = 264;
+      } else if (target.id !== 1 && target.id !== 264 && Math.random() < 0.1) {
+        this.nextGrid[this.getIndex(nx, ny)] = 6; // Turn to fire
+      }
+    }
+    // Die out
+    if (Math.random() < 0.3) {
+      this.nextGrid[this.getIndex(x, y)] = 7; // Turn to smoke
+    }
+  }
+
+  interactShockwave(x: number, y: number) {
+    // Shockwaves push neighbors
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.type === 'powder' || target.type === 'liquid') {
+        const dx = nx - x;
+        const dy = ny - y;
+        if (this.getElementAt(nx + dx, ny + dy).id === 0) {
+          this.moveElement(nx, ny, nx + dx, ny + dy);
+        }
+      }
+    }
+    // Die out
+    if (Math.random() < 0.5) {
+      this.nextGrid[this.getIndex(x, y)] = 0;
+    }
+  }
+
+  interactHuman(x: number, y: number) {
+    // Humans walk on solids
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[256]);
+      return;
+    }
+    if (Math.random() < 0.1) {
+      const dx = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dx, y).id === 0 && (this.getElementAt(x + dx, y + 1).type === 'solid' || this.getElementAt(x + dx, y + 1).type === 'powder')) {
+        this.moveElement(x, y, x + dx, y);
+      }
+    }
+  }
+
+  interactCat(x: number, y: number) {
+    // Cats walk and jump
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[257]);
+      return;
+    }
+    if (Math.random() < 0.2) {
+      const dx = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dx, y).id === 0) {
+        this.moveElement(x, y, x + dx, y);
+      } else if (this.getElementAt(x + dx, y - 1).id === 0) {
+        this.moveElement(x, y, x + dx, y - 1); // Jump
+      }
+    }
+  }
+
+  interactDog(x: number, y: number) {
+    // Dogs walk
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[258]);
+      return;
+    }
+    if (Math.random() < 0.1) {
+      const dx = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dx, y).id === 0) {
+        this.moveElement(x, y, x + dx, y);
+      }
+    }
+  }
+
+  interactRat(x: number, y: number) {
+    // Rats walk fast
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[259]);
+      return;
+    }
+    if (Math.random() < 0.3) {
+      const dx = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dx, y).id === 0) {
+        this.moveElement(x, y, x + dx, y);
+      }
+    }
+  }
+
+  interactBird(x: number, y: number) {
+    // Birds fly
+    if (Math.random() < 0.3) {
+      const dx = Math.floor(Math.random() * 3) - 1;
+      const dy = Math.floor(Math.random() * 3) - 1 - (Math.random() < 0.1 ? 1 : 0); // Tendency to fly up
+      if (this.getElementAt(x + dx, y + dy).id === 0) {
+        this.moveElement(x, y, x + dx, y + dy);
+      }
+    }
   }
 
   saveState(): string {
