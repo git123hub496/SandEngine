@@ -184,7 +184,7 @@ export default function App() {
     }
   };
 
-  const categories = ['Land', 'Liquids', 'Life', 'Powders', 'Solids', 'Energy', 'Gases', 'Special'];
+  const categories = ['Land', 'Liquids', 'Life', 'Powders', 'Solids', 'Energy', 'Gases', 'Machine', 'Special'];
   
   const filteredElements = Object.values(ELEMENTS).filter(el => {
     if (el.id === 0) return false;
@@ -197,10 +197,11 @@ export default function App() {
     if (category === 'Land') return [2, 4, 37, 38, 39, 76, 77, 78, 79, 80, 93, 94, 111, 112, 113, 114, 115, 116].includes(el.id);
     if (category === 'Liquids') return el.type === 'liquid';
     if (category === 'Powders') return el.type === 'powder' && ![2, 37, 38, 39, 76, 77, 78, 79, 80, 111, 112, 113, 114, 115, 116].includes(el.id);
-    if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94].includes(el.id);
+    if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94, 221, 222, 223, 224, 225].includes(el.id);
     if (category === 'Gases') return el.type === 'gas' || [147, 148, 159, 160].includes(el.id);
     if (category === 'Energy') return el.type === 'fire' || [28, 154, 155, 156].includes(el.id);
     if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150].includes(el.id);
+    if (category === 'Machine') return [221, 222, 223, 224, 225].includes(el.id);
     if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 151, 152, 157, 158].includes(el.id);
     return true;
   });
@@ -346,6 +347,12 @@ export default function App() {
             </button>
           ))}
         </div>
+
+        {category === 'Machine' && (
+          <div className="mt-1 p-1 bg-[#1a1a1a] border border-[#333] text-[7px] text-gray-400 font-mono animate-pulse">
+            <span className="text-yellow-500">GUIDE:</span> Connect <span className="text-green-500">BATTERY</span> to <span className="text-yellow-400">WIRE</span> to power machines. <span className="text-purple-500">CLONE WALL</span> duplicates elements on top of it when powered!
+          </div>
+        )}
 
         {/* Elements Grid Row */}
         <div className="flex-1 overflow-x-auto custom-scrollbar pb-2 mt-1">

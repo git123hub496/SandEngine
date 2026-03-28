@@ -243,4 +243,9 @@ export const ELEMENTS: Record<number, Element> = {
   218: { id: 218, name: 'Liquid Oxygen', type: 'liquid', color: '#bbdefb', density: 1.2, temperature: -183 },
   219: { id: 219, name: 'Molten Salt', type: 'liquid', color: '#eeeeee', density: 9, temperature: 801, stateChange: { to: 16, temp: 700, above: false } },
   220: { id: 220, name: 'Molten Sugar', type: 'liquid', color: '#d7ccc8', density: 8, temperature: 186, stateChange: { to: 175, temp: 150, above: false } },
+  221: { id: 221, name: 'Battery', type: 'solid', color: '#4caf50', density: 1000, conductive: true },
+  222: { id: 222, name: 'Wire', type: 'solid', color: '#ffeb3b', density: 1000, conductive: true },
+  223: { id: 223, name: 'Burner', type: 'solid', color: '#f44336', density: 1000, conductive: true },
+  224: { id: 224, name: 'Cooler', type: 'solid', color: '#2196f3', density: 1000, conductive: true },
+  225: { id: 225, name: 'Clone Wall', type: 'solid', color: '#9c27b0', density: 1000, conductive: true },
 };

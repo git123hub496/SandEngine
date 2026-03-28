@@ -9,9 +9,12 @@ export class SandEngine {
   nextGrid: Int32Array;
   tempGrid: Float32Array;
   nextTempGrid: Float32Array;
+  powerGrid: Uint8Array;
+  nextPowerGrid: Uint8Array;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   cellSize: number;
+  frameCount: number = 0;
   public stats = {
     fireCount: 0,
     liquidCount: 0,
@@ -28,6 +31,8 @@ export class SandEngine {
     this.nextGrid = new Int32Array(this.width * this.height);
     this.tempGrid = new Float32Array(this.width * this.height);
     this.nextTempGrid = new Float32Array(this.width * this.height);
+    this.powerGrid = new Uint8Array(this.width * this.height);
+    this.nextPowerGrid = new Uint8Array(this.width * this.height);
     
     this.canvas.width = this.width * cellSize;
     this.canvas.height = this.height * cellSize;
@@ -75,12 +80,28 @@ export class SandEngine {
   }
 
   update() {
+    this.frameCount++;
     this.nextGrid.set(this.grid);
     this.nextTempGrid.set(this.tempGrid);
+    this.nextPowerGrid.fill(0);
 
     this.stats.fireCount = 0;
     this.stats.liquidCount = 0;
     this.stats.solidCount = 0;
+
+    // Power propagation pass (multiple directions for speed)
+    for (let y = this.height - 1; y >= 0; y--) {
+      for (let x = 0; x < this.width; x++) {
+        this.updatePower(x, y);
+      }
+    }
+    this.powerGrid.set(this.nextPowerGrid);
+    for (let y = 0; y < this.height; y++) {
+      for (let x = this.width - 1; x >= 0; x--) {
+        this.updatePower(x, y);
+      }
+    }
+    this.powerGrid.set(this.nextPowerGrid);
 
     // Update from bottom to top, left to right for gravity
     for (let y = this.height - 1; y >= 0; y--) {
@@ -116,6 +137,62 @@ export class SandEngine {
 
     this.grid.set(this.nextGrid);
     this.tempGrid.set(this.nextTempGrid);
+    this.powerGrid.set(this.nextPowerGrid);
+    this.render();
+  }
+
+  updatePower(x: number, y: number) {
+    const idx = this.getIndex(x, y);
+    const elementId = this.grid[idx];
+    const element = ELEMENTS[elementId];
+
+    if (elementId === 221) { // Battery
+      this.nextPowerGrid[idx] = 1;
+      return;
+    }
+
+    if (!element.conductive) {
+      this.nextPowerGrid[idx] = 0;
+      return;
+    }
+
+    // Conductive elements check neighbors for power
+    let hasPower = false;
+    const neighbors = [[x+1, y], [x-1, y], [x, y+1], [x, y-1]];
+    for (const [nx, ny] of neighbors) {
+      const nIdx = this.getIndex(nx, ny);
+      // Check both current power and next power (to allow propagation in one frame)
+      // Actually, standard cellular automata propagation is better for "circuits"
+      if (nIdx !== -1 && (this.powerGrid[nIdx] === 1 || this.nextPowerGrid[nIdx] === 1)) {
+        hasPower = true;
+        break;
+      }
+    }
+    this.nextPowerGrid[idx] = hasPower ? 1 : 0;
+
+    // Clone Wall logic
+    if (hasPower && elementId === 225) {
+      this.interactCloneWall(x, y);
+      if (Math.random() < 0.05) {
+        particleManager.addParticle(x, y, 'spark', '#ba68c8');
+      }
+    }
+  }
+
+  interactCloneWall(x: number, y: number) {
+    // Clone whatever is on top of it
+    const topIdx = this.getIndex(x, y - 1);
+    if (topIdx !== -1) {
+      const sourceId = this.grid[topIdx];
+      if (sourceId !== 0 && sourceId !== 225 && sourceId !== 1) { // Don't clone empty, wall, or other clone walls
+        // Output to bottom if empty
+        const bottomIdx = this.getIndex(x, y + 1);
+        if (bottomIdx !== -1 && this.grid[bottomIdx] === 0) {
+          this.nextGrid[bottomIdx] = sourceId;
+          this.nextTempGrid[bottomIdx] = this.tempGrid[topIdx];
+        }
+      }
+    }
   }
 
   private isMoving(x: number, y: number): boolean {
@@ -145,6 +222,15 @@ export class SandEngine {
     // Diffusion rate
     const diffusion = 0.1;
     this.nextTempGrid[idx] = this.tempGrid[idx] + (avgTemp / count - this.tempGrid[idx]) * diffusion;
+
+    // Machine logic for heat
+    if (this.powerGrid[idx] === 1) {
+      if (elementId === 223) { // Burner
+        this.nextTempGrid[idx] += 10;
+      } else if (elementId === 224) { // Cooler
+        this.nextTempGrid[idx] -= 10;
+      }
+    }
 
     // Apply element's inherent temperature
     if (element.temperature !== undefined) {
@@ -742,12 +828,47 @@ export class SandEngine {
 
     for (let i = 0; i < this.grid.length; i++) {
       const elementId = this.grid[i];
-      const color = ELEMENTS[elementId].color;
+      if (elementId === 0) {
+        const p = i * 4;
+        data[p] = 0;
+        data[p + 1] = 0;
+        data[p + 2] = 0;
+        data[p + 3] = 255;
+        continue;
+      }
+
+      let color = ELEMENTS[elementId].color;
       
+      // Visual feedback for power
+      if (this.powerGrid[i] === 1) {
+        if (elementId === 222) { // Wire charge animation
+          // Moving pulse based on position
+          const x = i % this.width;
+          const y = Math.floor(i / this.width);
+          const pulse = (x + y + this.frameCount * 3) % 15;
+          if (pulse < 3) color = '#ffffff'; // White pulse
+          else if (pulse < 7) color = '#ffeb3b'; // Yellow
+          else color = '#795548'; // Brownish/Dark Yellow like the photo
+        }
+        else if (elementId === 221) color = '#81c784'; // Powered battery glows lighter green
+        else if (elementId === 223) color = '#ff8a65'; // Powered burner glows lighter red
+        else if (elementId === 224) color = '#64b5f6'; // Powered cooler glows lighter blue
+        else if (elementId === 225) color = '#ba68c8'; // Powered clone wall glows lighter purple
+      }
+
       // Fast hex to RGB
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
+      let r = parseInt(color.slice(1, 3), 16);
+      let g = parseInt(color.slice(3, 5), 16);
+      let b = parseInt(color.slice(5, 7), 16);
+
+      // Add texture (per-pixel noise)
+      // Use a more complex hash to avoid repeating patterns
+      const hash = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+      const noise = (hash - Math.floor(hash)) * 30 - 15; // -15 to +15 range
+      
+      r = Math.max(0, Math.min(255, r + noise));
+      g = Math.max(0, Math.min(255, g + noise));
+      b = Math.max(0, Math.min(255, b + noise));
 
       const p = i * 4;
       data[p] = r;
