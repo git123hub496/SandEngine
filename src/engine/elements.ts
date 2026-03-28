@@ -1,0 +1,126 @@
+
+export type ElementType = 'empty' | 'solid' | 'powder' | 'liquid' | 'gas' | 'fire' | 'special';
+
+export interface Element {
+  id: number;
+  name: string;
+  type: ElementType;
+  color: string;
+  density: number;
+  viscosity?: number; // For liquids
+  friction?: number; // For powders
+  flammability?: number; // 0 to 1
+  longevity?: number; // For temporary elements like fire/smoke
+  dissolvable?: boolean; // Can be dissolved by acid
+  conductive?: boolean;
+  temperature?: number;
+  stateChange?: {
+    to: number;
+    temp: number;
+    above: boolean;
+  };
+}
+
+export const ELEMENTS: Record<number, Element> = {
+  0: { id: 0, name: 'Empty', type: 'empty', color: '#000000', density: 0 },
+  1: { id: 1, name: 'Wall', type: 'solid', color: '#888888', density: 1000 },
+  2: { id: 2, name: 'Sand', type: 'powder', color: '#f4d03f', density: 10, friction: 0.1 },
+  3: { id: 3, name: 'Water', type: 'liquid', color: '#3498db', density: 5, viscosity: 0.9, temperature: 20 },
+  4: { id: 4, name: 'Stone', type: 'solid', color: '#5d6d7e', density: 100, temperature: 20 },
+  5: { id: 5, name: 'Wood', type: 'solid', color: '#a04000', density: 20, flammability: 0.5, temperature: 20 },
+  6: { id: 6, name: 'Fire', type: 'fire', color: '#e67e22', density: 1, longevity: 50, temperature: 600 },
+  7: { id: 7, name: 'Smoke', type: 'gas', color: '#566573', density: 0.5, longevity: 100, temperature: 100 },
+  8: { id: 8, name: 'Acid', type: 'liquid', color: '#2ecc71', density: 4, viscosity: 0.8, temperature: 25 },
+  9: { id: 9, name: 'Oil', type: 'liquid', color: '#2c3e50', density: 3, viscosity: 0.7, flammability: 0.9, temperature: 20 },
+  10: { id: 10, name: 'Lava', type: 'liquid', color: '#c0392b', density: 15, viscosity: 0.2, temperature: 1200 },
+  11: { id: 11, name: 'Steam', type: 'gas', color: '#ebf5fb', density: 0.4, longevity: 80, temperature: 110 },
+  12: { id: 12, name: 'Gunpowder', type: 'powder', color: '#212f3c', density: 8, flammability: 1.0, temperature: 20 },
+  13: { id: 13, name: 'Glass', type: 'solid', color: '#aed6f1', density: 50, dissolvable: false, temperature: 20 },
+  14: { id: 14, name: 'Ice', type: 'solid', color: '#d6eaf8', density: 10, temperature: -10, stateChange: { to: 3, temp: 0, above: true } },
+  15: { id: 15, name: 'Coal', type: 'solid', color: '#17202a', density: 30, flammability: 0.3, temperature: 20 },
+  16: { id: 16, name: 'Salt', type: 'powder', color: '#fdfefe', density: 9, temperature: 20 },
+  17: { id: 17, name: 'Methane', type: 'gas', color: '#d5f5e3', density: 0.3, flammability: 1.0, temperature: 20 },
+  18: { id: 18, name: 'Metal', type: 'solid', color: '#bdc3c7', density: 200, conductive: true, temperature: 20, stateChange: { to: 10, temp: 1000, above: true } },
+  19: { id: 19, name: 'Rust', type: 'powder', color: '#935116', density: 15 },
+  20: { id: 20, name: 'Plant', type: 'special', color: '#27ae60', density: 10, flammability: 0.4 },
+  21: { id: 21, name: 'Virus', type: 'special', color: '#8e44ad', density: 5 },
+  22: { id: 22, name: 'Concrete', type: 'solid', color: '#7f8c8d', density: 120 },
+  23: { id: 23, name: 'Mud', type: 'liquid', color: '#6e2c00', density: 8, viscosity: 0.3 },
+  24: { id: 24, name: 'Snow', type: 'powder', color: '#ffffff', density: 2, stateChange: { to: 3, temp: 0, above: true } },
+  25: { id: 25, name: 'Honey', type: 'liquid', color: '#f39c12', density: 12, viscosity: 0.1 },
+  26: { id: 26, name: 'Wax', type: 'solid', color: '#f7dc6f', density: 7, flammability: 0.6 },
+  27: { id: 27, name: 'Nitrogen', type: 'liquid', color: '#d1f2eb', density: 2, temperature: -196 },
+  28: { id: 28, name: 'Plasma', type: 'fire', color: '#f1c40f', density: 0.1, longevity: 20 },
+  29: { id: 29, name: 'Gold', type: 'solid', color: '#ffd700', density: 500 },
+  30: { id: 30, name: 'Silver', type: 'solid', color: '#c0c0c0', density: 400 },
+  31: { id: 31, name: 'Copper', type: 'solid', color: '#b87333', density: 350, conductive: true },
+  32: { id: 32, name: 'Lead', type: 'solid', color: '#708090', density: 600 },
+  33: { id: 33, name: 'Mercury', type: 'liquid', color: '#e5e7e9', density: 135, viscosity: 0.95 },
+  34: { id: 34, name: 'Uranium', type: 'solid', color: '#2ecc71', density: 800, temperature: 50 },
+  35: { id: 35, name: 'Obsidian', type: 'solid', color: '#1b2631', density: 150 },
+  36: { id: 36, name: 'Brick', type: 'solid', color: '#a93226', density: 110 },
+  37: { id: 37, name: 'Dirt', type: 'powder', color: '#5d4037', density: 12 },
+  38: { id: 38, name: 'Clay', type: 'powder', color: '#bcaaa4', density: 14 },
+  39: { id: 39, name: 'Gravel', type: 'powder', color: '#757575', density: 25 },
+  40: { id: 40, name: 'Ash', type: 'powder', color: '#bdbdbd', density: 3 },
+  41: { id: 41, name: 'Dust', type: 'powder', color: '#eeeeee', density: 1 },
+  42: { id: 42, name: 'Sugar', type: 'powder', color: '#fff9c4', density: 8 },
+  43: { id: 43, name: 'Flour', type: 'powder', color: '#f5f5f5', density: 6 },
+  44: { id: 44, name: 'Coffee', type: 'powder', color: '#3e2723', density: 7 },
+  45: { id: 45, name: 'Tea', type: 'liquid', color: '#795548', density: 5 },
+  46: { id: 46, name: 'Milk', type: 'liquid', color: '#ffffff', density: 6 },
+  47: { id: 47, name: 'Wine', type: 'liquid', color: '#880e4f', density: 5 },
+  48: { id: 48, name: 'Beer', type: 'liquid', color: '#fbc02d', density: 5 },
+  49: { id: 49, name: 'Juice', type: 'liquid', color: '#ff9800', density: 5 },
+  50: { id: 50, name: 'Blood', type: 'liquid', color: '#b71c1c', density: 7 },
+  51: { id: 51, name: 'Slime', type: 'liquid', color: '#4caf50', density: 4, viscosity: 0.4 },
+  52: { id: 52, name: 'Glue', type: 'liquid', color: '#cfd8dc', density: 9, viscosity: 0.1 },
+  53: { id: 53, name: 'Paint R', type: 'liquid', color: '#f44336', density: 5 },
+  54: { id: 54, name: 'Paint G', type: 'liquid', color: '#4caf50', density: 5 },
+  55: { id: 55, name: 'Paint B', type: 'liquid', color: '#2196f3', density: 5 },
+  56: { id: 56, name: 'Ink', type: 'liquid', color: '#212121', density: 5 },
+  57: { id: 57, name: 'Petrol', type: 'liquid', color: '#ffeb3b', density: 3, flammability: 0.95 },
+  58: { id: 58, name: 'Diesel', type: 'liquid', color: '#fdd835', density: 4, flammability: 0.85 },
+  59: { id: 59, name: 'Alcohol', type: 'liquid', color: '#e1f5fe', density: 3, flammability: 0.9 },
+  60: { id: 60, name: 'Vinegar', type: 'liquid', color: '#fffde7', density: 5 },
+  61: { id: 61, name: 'Soap', type: 'liquid', color: '#f3e5f5', density: 5 },
+  62: { id: 62, name: 'Helium', type: 'gas', color: '#fce4ec', density: 0.1 },
+  63: { id: 63, name: 'Hydrogen', type: 'gas', color: '#e0f2f1', density: 0.1, flammability: 1.0 },
+  64: { id: 64, name: 'Oxygen', type: 'gas', color: '#e3f2fd', density: 1.2 },
+  65: { id: 65, name: 'CO2', type: 'gas', color: '#f5f5f5', density: 1.8 },
+  66: { id: 66, name: 'Chlorine', type: 'gas', color: '#d4e157', density: 3.2 },
+  67: { id: 67, name: 'Neon', type: 'gas', color: '#ff8a65', density: 0.9 },
+  68: { id: 68, name: 'Argon', type: 'gas', color: '#9575cd', density: 1.7 },
+  69: { id: 69, name: 'Xenon', type: 'gas', color: '#4fc3f7', density: 5.8 },
+  70: { id: 70, name: 'Radon', type: 'gas', color: '#a1887f', density: 9.7 },
+  71: { id: 71, name: 'Steam Hot', type: 'gas', color: '#ffffff', density: 0.4, temperature: 150 },
+  72: { id: 72, name: 'Exhaust', type: 'gas', color: '#424242', density: 1.1 },
+  73: { id: 73, name: 'Mist', type: 'gas', color: '#e0e0e0', density: 1.0 },
+  74: { id: 74, name: 'Fog', type: 'gas', color: '#cfd8dc', density: 1.0 },
+  75: { id: 75, name: 'Cloud', type: 'gas', color: '#eceff1', density: 0.8 },
+  76: { id: 76, name: 'Sand Red', type: 'powder', color: '#ef5350', density: 10 },
+  77: { id: 77, name: 'Sand Blue', type: 'powder', color: '#42a5f5', density: 10 },
+  78: { id: 78, name: 'Sand Green', type: 'powder', color: '#66bb6a', density: 10 },
+  79: { id: 79, name: 'Sand Black', type: 'powder', color: '#263238', density: 10 },
+  80: { id: 80, name: 'Sand White', type: 'powder', color: '#fafafa', density: 10 },
+  81: { id: 81, name: 'Diamond', type: 'solid', color: '#b2ebf2', density: 350 },
+  82: { id: 82, name: 'Ruby', type: 'solid', color: '#ff5252', density: 400 },
+  83: { id: 83, name: 'Emerald', type: 'solid', color: '#69f0ae', density: 400 },
+  84: { id: 84, name: 'Sapphire', type: 'solid', color: '#448aff', density: 400 },
+  85: { id: 85, name: 'Amethyst', type: 'solid', color: '#e040fb', density: 400 },
+  86: { id: 86, name: 'Topaz', type: 'solid', color: '#ffd740', density: 400 },
+  87: { id: 87, name: 'Quartz', type: 'solid', color: '#f5f5f5', density: 260 },
+  88: { id: 88, name: 'Granite', type: 'solid', color: '#9e9e9e', density: 270 },
+  89: { id: 89, name: 'Marble', type: 'solid', color: '#eeeeee', density: 270 },
+  90: { id: 90, name: 'Basalt', type: 'solid', color: '#212121', density: 300 },
+  91: { id: 91, name: 'Slate', type: 'solid', color: '#455a64', density: 280 },
+  92: { id: 92, name: 'Shale', type: 'solid', color: '#546e7a', density: 260 },
+  93: { id: 93, name: 'Sandstone', type: 'solid', color: '#d7ccc8', density: 230 },
+  94: { id: 94, name: 'Limestone', type: 'solid', color: '#f5f5f5', density: 250 },
+  95: { id: 95, name: 'Chalk', type: 'powder', color: '#ffffff', density: 23 },
+  96: { id: 96, name: 'Paper', type: 'solid', color: '#ffffff', density: 8, flammability: 0.8 },
+  97: { id: 97, name: 'Cloth', type: 'solid', color: '#f5f5f5', density: 10, flammability: 0.7 },
+  98: { id: 98, name: 'Rubber', type: 'solid', color: '#212121', density: 11, flammability: 0.3 },
+  99: { id: 99, name: 'Plastic', type: 'solid', color: '#e0e0e0', density: 9, flammability: 0.5 },
+  100: { id: 100, name: 'Void', type: 'special', color: '#000000', density: 9999 },
+};

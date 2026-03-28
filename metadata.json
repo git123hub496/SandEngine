@@ -1,0 +1,5 @@
+{
+  "name": "Sandengine",
+  "description": "A high-performance falling sand simulation with over 100 interactive elements including liquids, gases, solids, and reactive chemicals.",
+  "requestFramePermissions": []
+}
