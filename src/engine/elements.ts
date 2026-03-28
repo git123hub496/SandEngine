@@ -288,4 +288,5 @@ export const ELEMENTS: Record<number, Element> = {
   263: { id: 263, name: 'Bullet', type: 'special', color: '#ffeb3b', density: 10, longevity: 100 },
   264: { id: 264, name: 'Explosion', type: 'fire', color: '#ff9800', density: 0, longevity: 15 },
   265: { id: 265, name: 'Shockwave', type: 'gas', color: '#ffffff', density: 0, longevity: 5 },
+  266: { id: 266, name: 'Blade', type: 'powder', color: '#90a4ae', density: 100 },
 };

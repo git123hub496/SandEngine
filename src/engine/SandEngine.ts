@@ -376,8 +376,8 @@ export class SandEngine {
         this.interactPopcorn(x, y);
     }
 
-    // TNT, C4, Nuke, Grenade interaction
-    if ([238, 239, 240, 241].includes(element.id)) {
+    // TNT, C4, Nuke, Grenade, Blazer, Blade interaction
+    if ([238, 239, 240, 241, 261, 266].includes(element.id)) {
         this.interactExplosive(x, y, element);
     }
 
@@ -797,10 +797,14 @@ export class SandEngine {
   interactExplosive(x: number, y: number, element: Element) {
     const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
     let triggered = false;
+    let virusTrigger = false;
     for (const [nx, ny] of neighbors) {
       const target = this.getElementAt(nx, ny);
-      if (target.id === 6 || target.id === 28 || target.id === 264) { // Fire, Plasma, Explosion
+      if (target.id !== 0 && target.id !== element.id) { 
         triggered = true;
+        if (target.id === 21) { // Virus
+            virusTrigger = true;
+        }
         break;
       }
     }
@@ -811,6 +815,13 @@ export class SandEngine {
       if (element.id === 239) radius = 10; // C4
       if (element.id === 240) radius = 30; // Nuke
       if (element.id === 241) radius = 8; // Grenade
+      if (element.id === 261) radius = 12; // Blazer (if it explodes)
+      if (element.id === 266) radius = 6; // Blade
+      
+      if (virusTrigger) {
+          radius *= 5; // "Wipe everything out"
+      }
+      
       this.explode(x, y, radius);
     }
   }

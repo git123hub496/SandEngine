@@ -206,7 +206,7 @@ export default function App() {
     if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150].includes(el.id);
     if (category === 'Machine') return [221, 222, 223, 224, 225].includes(el.id);
     if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106, 141, 142, 144, 146, 149, 150, 151, 152, 157, 158, 256, 257, 258, 259, 260, 261, 263].includes(el.id);
-    if (category === 'Destructive') return [238, 239, 240, 241, 261, 262].includes(el.id);
+    if (category === 'Destructive') return [238, 239, 240, 241, 261, 262, 266].includes(el.id);
     return true;
   });
 
