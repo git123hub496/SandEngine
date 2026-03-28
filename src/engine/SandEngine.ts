@@ -21,7 +21,7 @@ export class SandEngine {
     liquidCount: 0,
     solidCount: 0
   };
-  public heldElement: { id: number; temp: number } | null = null;
+  public heldElements: { id: number; temp: number; dx: number; dy: number }[] = [];
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number, cellSize: number = 4) {
     this.canvas = canvas;
@@ -1002,31 +1002,97 @@ export class SandEngine {
       }
   }
 
-  pickUp(x: number, y: number) {
-      const idx = this.getIndex(x, y);
-      if (idx !== -1 && this.grid[idx] !== 0 && this.grid[idx] !== 1) {
-          this.heldElement = {
+  pickUp(x: number, y: number, radius: number) {
+    this.heldElements = [];
+    const r2 = radius * radius;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx * dx + dy * dy <= r2) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const idx = this.getIndex(nx, ny);
+          if (idx !== -1 && this.grid[idx] !== 0 && this.grid[idx] !== 1) {
+            this.heldElements.push({
               id: this.grid[idx],
-              temp: this.tempGrid[idx]
-          };
-          this.nextGrid[idx] = 0;
-          this.grid[idx] = 0;
-          return true;
+              temp: this.tempGrid[idx],
+              dx: dx,
+              dy: dy
+            });
+            this.nextGrid[idx] = 0;
+            this.grid[idx] = 0;
+            this.nextTempGrid[idx] = 20;
+            this.tempGrid[idx] = 20;
+          }
+        }
       }
-      return false;
+    }
+    return this.heldElements.length > 0;
   }
 
   dropHeld(x: number, y: number) {
-      if (this.heldElement) {
-          const idx = this.getIndex(x, y);
-          if (idx !== -1 && this.grid[idx] === 0) {
-              this.nextGrid[idx] = this.heldElement.id;
-              this.nextTempGrid[idx] = this.heldElement.temp;
-              this.heldElement = null;
-              return true;
-          }
+    if (this.heldElements.length > 0) {
+      for (const el of this.heldElements) {
+        const nx = x + el.dx;
+        const ny = y + el.dy;
+        const idx = this.getIndex(nx, ny);
+        if (idx !== -1 && this.grid[idx] === 0) {
+          this.grid[idx] = el.id;
+          this.nextGrid[idx] = el.id;
+          this.tempGrid[idx] = el.temp;
+          this.nextTempGrid[idx] = el.temp;
+        }
       }
-      return false;
+      this.heldElements = [];
+      return true;
+    }
+    return false;
+  }
+
+  mix(x: number, y: number, radius: number) {
+    const r2 = radius * radius;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx * dx + dy * dy <= r2) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const idx1 = this.getIndex(nx, ny);
+          if (idx1 === -1) continue;
+
+          // Perform multiple swaps for a stronger effect
+          for (let i = 0; i < 3; i++) {
+              const rdx = Math.floor(Math.random() * 7) - 3;
+              const rdy = Math.floor(Math.random() * 7) - 3;
+              const idx2 = this.getIndex(nx + rdx, ny + rdy);
+              if (idx2 === -1 || idx1 === idx2) continue;
+
+              const tempId = this.nextGrid[idx1];
+              const tempTemp = this.nextTempGrid[idx1];
+              
+              this.nextGrid[idx1] = this.nextGrid[idx2];
+              this.nextTempGrid[idx1] = this.nextTempGrid[idx2];
+              
+              this.nextGrid[idx2] = tempId;
+              this.nextTempGrid[idx2] = tempTemp;
+          }
+        }
+      }
+    }
+  }
+
+  paint(x: number, y: number, radius: number, elementId: number) {
+    const r2 = radius * radius;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx * dx + dy * dy <= r2) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const idx = this.getIndex(nx, ny);
+          if (idx !== -1 && this.grid[idx] !== 0 && this.grid[idx] !== 1) {
+            this.nextGrid[idx] = elementId;
+          }
+        }
+      }
+    }
   }
 
   interactCat(x: number, y: number) {

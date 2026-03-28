@@ -76,12 +76,19 @@ export default function App() {
         }
 
         // Handle dragging visual
-        if (toolType === 'drag' && isMouseDown && engineRef.current.heldElement) {
+        if (toolType === 'drag' && isMouseDown && engineRef.current.heldElements.length > 0) {
             const ctx = canvasRef.current?.getContext('2d');
             if (ctx) {
-                const el = ELEMENTS[engineRef.current.heldElement.id];
-                ctx.fillStyle = el.color;
-                ctx.fillRect(screenMousePos.x - 4, screenMousePos.y - 4, 8, 8);
+                for (const el of engineRef.current.heldElements) {
+                    const element = ELEMENTS[el.id];
+                    ctx.fillStyle = element.color;
+                    ctx.fillRect(
+                        screenMousePos.x + el.dx * engineRef.current.cellSize,
+                        screenMousePos.y + el.dy * engineRef.current.cellSize,
+                        engineRef.current.cellSize,
+                        engineRef.current.cellSize
+                    );
+                }
             }
         }
       }
@@ -111,10 +118,10 @@ export default function App() {
       setScreenMousePos({ x: clientX - rect.left, y: clientY - rect.top });
       
       if (toolType === 'drag' && engineRef.current) {
-        engineRef.current.pickUp(x, y);
-      } else if (selectedElement >= 0) {
+        engineRef.current.pickUp(x, y, brushSize);
+      } else if (selectedElement !== -3) {
         applyTool(x, y);
-        soundManager.playPlace();
+        if (selectedElement >= 0) soundManager.playPlace();
       }
     }
   };
@@ -135,7 +142,7 @@ export default function App() {
       setMousePos({ x, y });
       setScreenMousePos({ x: clientX - rect.left, y: clientY - rect.top });
 
-      if (isMouseDown && toolType !== 'drag' && selectedElement >= 0) {
+      if (isMouseDown && toolType !== 'drag' && selectedElement !== -3) {
         applyTool(x, y);
       }
     }
@@ -151,6 +158,20 @@ export default function App() {
   const applyTool = (x: number, y: number) => {
     if (!engineRef.current) return;
 
+    if (toolType === 'mix') {
+      engineRef.current.mix(x, y, brushSize);
+      return;
+    }
+
+    if (toolType === 'paint') {
+      if (selectedElement >= 0) {
+        engineRef.current.paint(x, y, brushSize, selectedElement);
+      }
+      return;
+    }
+
+    if (selectedElement === -3) return; // None selected
+
     for (let i = -brushSize; i <= brushSize; i++) {
       for (let j = -brushSize; j <= brushSize; j++) {
         if (i * i + j * j <= brushSize * brushSize) {
@@ -163,10 +184,6 @@ export default function App() {
           } else if (selectedElement === -2) { // Cool
             engineRef.current.changeTempAt(targetX, targetY, -5);
           } else {
-            // Check tool type
-            if (toolType === 'mix' && Math.random() > 0.3) continue;
-            if (toolType === 'paint' && currentElement.id === 0) continue;
-
             // Check replace mode
             if (isReplaceMode || currentElement.id === 0) {
               engineRef.current.setElementAt(targetX, targetY, selectedElement);
@@ -313,6 +330,9 @@ export default function App() {
             <span className="text-[12px] w-6 text-center">{brushSize}</span>
             <button onClick={() => setBrushSize(Math.min(15, brushSize + 1))} className="pixel-btn p-1 h-6 w-6">+</button>
           </div>
+          <button onClick={() => setSelectedElement(-3)} className={`pixel-btn ${selectedElement === -3 ? 'active' : 'bg-gray-700 text-gray-300'}`}>
+            None
+          </button>
           <button onClick={() => setSelectedElement(0)} className={`pixel-btn ${selectedElement === 0 ? 'active' : 'bg-purple-900 text-purple-400'}`}>
             Erase
           </button>
