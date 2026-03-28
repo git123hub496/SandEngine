@@ -412,6 +412,10 @@ export class SandEngine {
     if (element.id === 258) this.interactDog(x, y);
     if (element.id === 259) this.interactRat(x, y);
     if (element.id === 260) this.interactBird(x, y);
+    if (element.id === 267) this.interactFish(x, y);
+    if (element.id === 268) this.interactBug(x, y);
+    if (element.id === 269) this.interactFrog(x, y);
+    if (element.id === 270) this.interactZombie(x, y);
 
     // Longevity
     if (element.longevity && Math.random() < 0.1) {
@@ -684,51 +688,6 @@ export class SandEngine {
       }
   }
 
-  interactFish(x: number, y: number) {
-    // Fish need water
-    const current = this.getElementAt(x, y);
-    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
-    let inWater = false;
-    for (const [nx, ny] of neighbors) {
-        if (this.getElementAt(nx, ny).id === 3) {
-            inWater = true;
-            break;
-        }
-    }
-
-    if (!inWater && Math.random() < 0.1) {
-        this.nextGrid[this.getIndex(x, y)] = 50; // Die and turn to blood/meat? No, just empty for now or a dead fish element.
-        return;
-    }
-
-    // Swim
-    if (Math.random() < 0.2) {
-        const dx = Math.floor(Math.random() * 3) - 1;
-        const dy = Math.floor(Math.random() * 3) - 1;
-        if (this.getElementAt(x + dx, y + dy).id === 3) {
-            this.moveElement(x, y, x + dx, y + dy);
-        }
-    }
-  }
-
-  interactBug(x: number, y: number) {
-    // Bugs crawl on solids
-    const below = this.getElementAt(x, y + 1);
-    if (below.id === 0) {
-        this.updatePowder(x, y, ELEMENTS[106]); // Fall like powder
-        return;
-    }
-
-    if (Math.random() < 0.1) {
-        const dx = Math.random() > 0.5 ? 1 : -1;
-        if (this.getElementAt(x + dx, y).id === 0 && this.getElementAt(x + dx, y + 1).type === 'solid') {
-            this.moveElement(x, y, x + dx, y);
-        } else if (this.getElementAt(x + dx, y - 1).id === 0 && this.getElementAt(x + dx, y).type === 'solid') {
-            this.moveElement(x, y, x + dx, y - 1); // Climb
-        }
-    }
-  }
-
   interactAntiMatter(x: number, y: number) {
       const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
       for (const [nx, ny] of neighbors) {
@@ -938,12 +897,40 @@ export class SandEngine {
   }
 
   interactHuman(x: number, y: number) {
-    // Humans walk on solids
+    // Humans walk on solids, eat food, drink water, and die from hazards
+    const idx = this.getIndex(x, y);
     const below = this.getElementAt(x, y + 1);
+    
+    // Drowning check
+    if (this.getElementAt(x, y).id === 3 || this.getElementAt(x, y).id === 37) {
+      if (Math.random() < 0.05) {
+        this.die(x, y);
+        return;
+      }
+    }
+
     if (below.id === 0) {
       this.updatePowder(x, y, ELEMENTS[256]);
       return;
     }
+
+    // Feeding and drinking
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if ([242, 243, 244, 245].includes(target.id)) { // Food
+        this.nextGrid[this.getIndex(nx, ny)] = 0; // Eat
+        if (Math.random() < 0.1) this.spawn(x, y, 256); // Reproduce
+        return;
+      }
+      if (target.id === 3) { // Drink water
+        if (Math.random() < 0.01) {
+          // Just a visual effect or something? No, let's just say they are happy.
+        }
+      }
+    }
+
+    // Movement
     if (Math.random() < 0.1) {
       const dx = Math.random() > 0.5 ? 1 : -1;
       if (this.getElementAt(x + dx, y).id === 0 && (this.getElementAt(x + dx, y + 1).type === 'solid' || this.getElementAt(x + dx, y + 1).type === 'powder')) {
@@ -953,12 +940,30 @@ export class SandEngine {
   }
 
   interactCat(x: number, y: number) {
-    // Cats walk and jump
+    // Cats walk, jump, eat rats/birds/fish, and avoid dogs
     const below = this.getElementAt(x, y + 1);
+    
+    if (this.getElementAt(x, y).id === 3 || this.getElementAt(x, y).id === 37) {
+      if (Math.random() < 0.1) { this.die(x, y); return; }
+    }
+
     if (below.id === 0) {
       this.updatePowder(x, y, ELEMENTS[257]);
       return;
     }
+
+    // Predation
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if ([259, 260, 267].includes(target.id)) { // Rat, Bird, Fish
+        this.nextGrid[this.getIndex(nx, ny)] = 271; // Eat and leave blood
+        if (Math.random() < 0.05) this.spawn(x, y, 257);
+        return;
+      }
+    }
+
+    // Movement
     if (Math.random() < 0.2) {
       const dx = Math.random() > 0.5 ? 1 : -1;
       if (this.getElementAt(x + dx, y).id === 0) {
@@ -970,12 +975,37 @@ export class SandEngine {
   }
 
   interactDog(x: number, y: number) {
-    // Dogs walk
+    // Dogs walk, chase cats, and eat meat
     const below = this.getElementAt(x, y + 1);
+    
+    if (this.getElementAt(x, y).id === 3 || this.getElementAt(x, y).id === 37) {
+      if (Math.random() < 0.05) { this.die(x, y); return; }
+    }
+
     if (below.id === 0) {
       this.updatePowder(x, y, ELEMENTS[258]);
       return;
     }
+
+    // Chase cats or eat meat
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 245 || target.id === 242) { // Steak or Burger
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.05) this.spawn(x, y, 258);
+        return;
+      }
+      if (target.id === 257) { // Cat
+        // Bark or chase? Let's just move towards it if possible
+        const dx = nx > x ? 1 : -1;
+        if (this.getElementAt(x + dx, y).id === 0) {
+          this.moveElement(x, y, x + dx, y);
+          return;
+        }
+      }
+    }
+
     if (Math.random() < 0.1) {
       const dx = Math.random() > 0.5 ? 1 : -1;
       if (this.getElementAt(x + dx, y).id === 0) {
@@ -985,12 +1015,29 @@ export class SandEngine {
   }
 
   interactRat(x: number, y: number) {
-    // Rats walk fast
+    // Rats walk fast and eat anything organic
     const below = this.getElementAt(x, y + 1);
+    
+    if (this.getElementAt(x, y).id === 3 || this.getElementAt(x, y).id === 37) {
+      if (Math.random() < 0.2) { this.die(x, y); return; }
+    }
+
     if (below.id === 0) {
       this.updatePowder(x, y, ELEMENTS[259]);
       return;
     }
+
+    // Eat
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if ([242, 243, 244, 245, 141, 150].includes(target.id)) { // Food, Grass, Mushroom
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.2) this.spawn(x, y, 259);
+        return;
+      }
+    }
+
     if (Math.random() < 0.3) {
       const dx = Math.random() > 0.5 ? 1 : -1;
       if (this.getElementAt(x + dx, y).id === 0) {
@@ -999,13 +1046,172 @@ export class SandEngine {
     }
   }
 
+  die(x: number, y: number) {
+    const idx = this.getIndex(x, y);
+    if (Math.random() < 0.5) {
+      this.nextGrid[idx] = 271; // Blood
+    } else {
+      this.nextGrid[idx] = 245; // Steak (Meat)
+    }
+    particleManager.addParticle(x, y, 'smoke', '#b71c1c');
+  }
+
+  spawn(x: number, y: number, id: number) {
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y - 1], [x, y + 1]];
+    for (const [nx, ny] of neighbors) {
+      if (this.getElementAt(nx, ny).id === 0) {
+        this.nextGrid[this.getIndex(nx, ny)] = id;
+        return;
+      }
+    }
+  }
+
   interactBird(x: number, y: number) {
-    // Birds fly
+    // Birds fly, eat bugs, and die in water
+    if (this.getElementAt(x, y).id === 3 || this.getElementAt(x, y).id === 37) {
+      if (Math.random() < 0.2) { this.die(x, y); return; }
+    }
+
+    // Eat bugs
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 268 || target.id === 106) { // Bug
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.1) this.spawn(x, y, 260);
+        return;
+      }
+    }
+
     if (Math.random() < 0.3) {
       const dx = Math.floor(Math.random() * 3) - 1;
       const dy = Math.floor(Math.random() * 3) - 1 - (Math.random() < 0.1 ? 1 : 0); // Tendency to fly up
       if (this.getElementAt(x + dx, y + dy).id === 0) {
         this.moveElement(x, y, x + dx, y + dy);
+      }
+    }
+  }
+
+  interactFish(x: number, y: number) {
+    // Fish swim in water, eat bugs, and die in air
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 268 || target.id === 106) { // Bug
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.1) this.spawn(x, y, 267);
+        return;
+      }
+    }
+
+    if (Math.random() < 0.2) {
+      const dx = Math.floor(Math.random() * 3) - 1;
+      const dy = Math.floor(Math.random() * 3) - 1;
+      const target = this.getElementAt(x + dx, y + dy);
+      if (target.id === 3 || target.id === 37) { // Water or Salt Water
+        this.moveElement(x, y, x + dx, y + dy);
+      } else if (target.id === 0) {
+        // Fall if in air
+        this.updatePowder(x, y, ELEMENTS[267]);
+        // Die in air eventually
+        if (Math.random() < 0.01) this.die(x, y);
+      }
+    }
+  }
+
+  interactBug(x: number, y: number) {
+    // Bugs crawl, eat plants
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 141 || target.id === 150 || target.id === 101) { // Grass, Mushroom, Vine
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.1) this.spawn(x, y, 268);
+        return;
+      }
+    }
+
+    if (Math.random() < 0.3) {
+      let attached = false;
+      for (const [nx, ny] of neighbors) {
+        const target = this.getElementAt(nx, ny);
+        if (target.type === 'solid' || target.id === 1) {
+          attached = true;
+          break;
+        }
+      }
+
+      if (attached) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1;
+        if (this.getElementAt(x + dx, y + dy).id === 0) {
+          this.moveElement(x, y, x + dx, y + dy);
+        }
+      } else {
+        // Fall if not attached
+        this.updatePowder(x, y, ELEMENTS[268]);
+      }
+    }
+  }
+
+  interactFrog(x: number, y: number) {
+    // Frogs jump, swim, eat bugs
+    const below = this.getElementAt(x, y + 1);
+    
+    // Eat bugs
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if (target.id === 268 || target.id === 106) { // Bug
+        this.nextGrid[this.getIndex(nx, ny)] = 0;
+        if (Math.random() < 0.1) this.spawn(x, y, 269);
+        return;
+      }
+    }
+
+    if (below.id === 3 || below.id === 37) { // In water
+      if (Math.random() < 0.1) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1;
+        if (this.getElementAt(x + dx, y + dy).id === 3) {
+          this.moveElement(x, y, x + dx, y + dy);
+        }
+      }
+    } else if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[269]);
+    } else {
+      // On land, jump
+      if (Math.random() < 0.05) {
+        const dx = (Math.random() > 0.5 ? 1 : -1) * 2;
+        const dy = -2;
+        if (this.getElementAt(x + dx, y + dy).id === 0) {
+          this.moveElement(x, y, x + dx, y + dy);
+        }
+      }
+    }
+  }
+
+  interactZombie(x: number, y: number) {
+    // Zombies walk and infect humans/animals
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+      this.updatePowder(x, y, ELEMENTS[270]);
+      return;
+    }
+
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    for (const [nx, ny] of neighbors) {
+      const target = this.getElementAt(nx, ny);
+      if ([256, 257, 258, 259, 260].includes(target.id)) { // Human, Cat, Dog, Rat, Bird
+        this.nextGrid[this.getIndex(nx, ny)] = 270; // Infect
+        particleManager.addParticle(nx, ny, 'smoke', '#4caf50');
+      }
+    }
+
+    if (Math.random() < 0.05) {
+      const dx = Math.random() > 0.5 ? 1 : -1;
+      if (this.getElementAt(x + dx, y).id === 0 && (this.getElementAt(x + dx, y + 1).type === 'solid' || this.getElementAt(x + dx, y + 1).type === 'powder')) {
+        this.moveElement(x, y, x + dx, y);
       }
     }
   }

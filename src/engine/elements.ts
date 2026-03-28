@@ -289,4 +289,9 @@ export const ELEMENTS: Record<number, Element> = {
   264: { id: 264, name: 'Explosion', type: 'fire', color: '#ff9800', density: 0, longevity: 15 },
   265: { id: 265, name: 'Shockwave', type: 'gas', color: '#ffffff', density: 0, longevity: 5 },
   266: { id: 266, name: 'Blade', type: 'powder', color: '#90a4ae', density: 100 },
+  267: { id: 267, name: 'Fish', type: 'special', color: '#ff5722', density: 10 },
+  268: { id: 268, name: 'Bug', type: 'special', color: '#795548', density: 5 },
+  269: { id: 269, name: 'Frog', type: 'special', color: '#4caf50', density: 10 },
+  270: { id: 270, name: 'Zombie', type: 'special', color: '#607d8b', density: 10 },
+  271: { id: 271, name: 'Blood', type: 'liquid', color: '#b71c1c', density: 6, viscosity: 0.8 },
 };
