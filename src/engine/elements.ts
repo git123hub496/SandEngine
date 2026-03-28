@@ -123,4 +123,10 @@ export const ELEMENTS: Record<number, Element> = {
   98: { id: 98, name: 'Rubber', type: 'solid', color: '#212121', density: 11, flammability: 0.3 },
   99: { id: 99, name: 'Plastic', type: 'solid', color: '#e0e0e0', density: 9, flammability: 0.5 },
   100: { id: 100, name: 'Void', type: 'special', color: '#000000', density: 9999 },
+  101: { id: 101, name: 'Vine', type: 'special', color: '#1b5e20', density: 10, flammability: 0.4 },
+  102: { id: 102, name: 'Moss', type: 'special', color: '#33691e', density: 10, flammability: 0.4 },
+  103: { id: 103, name: 'Flower', type: 'special', color: '#f06292', density: 10, flammability: 0.4 },
+  104: { id: 104, name: 'Fish', type: 'special', color: '#ff7043', density: 5 },
+  105: { id: 105, name: 'Bird', type: 'special', color: '#4fc3f7', density: 1 },
+  106: { id: 106, name: 'Bug', type: 'special', color: '#795548', density: 5 },
 };

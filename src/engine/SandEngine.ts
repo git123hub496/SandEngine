@@ -223,6 +223,36 @@ export class SandEngine {
     if (element.id === 100) { // Void
         this.interactVoid(x, y);
     }
+
+    // Vine interaction
+    if (element.id === 101) {
+        this.interactVine(x, y);
+    }
+
+    // Moss interaction
+    if (element.id === 102) {
+        this.interactMoss(x, y);
+    }
+
+    // Flower interaction
+    if (element.id === 103) {
+        this.interactFlower(x, y);
+    }
+
+    // Fish interaction
+    if (element.id === 104) {
+        this.interactFish(x, y);
+    }
+
+    // Bird interaction
+    if (element.id === 105) {
+        this.interactBird(x, y);
+    }
+
+    // Bug interaction
+    if (element.id === 106) {
+        this.interactBug(x, y);
+    }
   }
 
   updatePowder(x: number, y: number, element: Element) {
@@ -389,6 +419,143 @@ export class SandEngine {
           if (this.getElementAt(nx, ny).id !== 100 && this.getElementAt(nx, ny).id !== 1) {
               this.nextGrid[this.getIndex(nx, ny)] = 0; // Consume
           }
+      }
+  }
+
+  interactVine(x: number, y: number) {
+    if (Math.random() > 0.05) return;
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    let attached = false;
+    for (const [nx, ny] of neighbors) {
+        const target = this.getElementAt(nx, ny);
+        if (target.type === 'solid' || target.id === 101) {
+            attached = true;
+            break;
+        }
+    }
+    if (!attached) {
+        this.nextGrid[this.getIndex(x, y)] = 0; // Fall if not attached
+        return;
+    }
+
+    // Grow downwards or sideways
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    const targets = [[x, y + 1], [x + dir, y]];
+    for (const [tx, ty] of targets) {
+        if (this.getElementAt(tx, ty).id === 0) {
+            this.nextGrid[this.getIndex(tx, ty)] = 101;
+            break;
+        }
+    }
+  }
+
+  interactMoss(x: number, y: number) {
+    if (Math.random() > 0.02) return;
+    const below = this.getElementAt(x, y + 1);
+    if (below.type !== 'solid' && below.id !== 102) {
+        this.nextGrid[this.getIndex(x, y)] = 0; // Moss needs support
+        return;
+    }
+
+    // Spread sideways
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    if (this.getElementAt(x + dir, y).id === 0 && this.getElementAt(x + dir, y + 1).type === 'solid') {
+        this.nextGrid[this.getIndex(x + dir, y)] = 102;
+    }
+  }
+
+  interactFlower(x: number, y: number) {
+      // Flowers don't grow, they just stay on plants
+      const below = this.getElementAt(x, y + 1);
+      if (below.id !== 20 && below.id !== 101 && below.id !== 103) {
+          this.nextGrid[this.getIndex(x, y)] = 0; // Die without support
+      }
+  }
+
+  interactFish(x: number, y: number) {
+    // Fish need water
+    const current = this.getElementAt(x, y);
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    let inWater = false;
+    for (const [nx, ny] of neighbors) {
+        if (this.getElementAt(nx, ny).id === 3) {
+            inWater = true;
+            break;
+        }
+    }
+
+    if (!inWater && Math.random() < 0.1) {
+        this.nextGrid[this.getIndex(x, y)] = 50; // Die and turn to blood/meat? No, just empty for now or a dead fish element.
+        return;
+    }
+
+    // Swim
+    if (Math.random() < 0.2) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1;
+        if (this.getElementAt(x + dx, y + dy).id === 3) {
+            this.moveElement(x, y, x + dx, y + dy);
+        }
+    }
+  }
+
+  interactBird(x: number, y: number) {
+    // Birds fly
+    if (Math.random() < 0.3) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1 - (Math.random() < 0.1 ? 1 : 0); // Tendency to fly up
+        if (this.getElementAt(x + dx, y + dy).id === 0) {
+            this.moveElement(x, y, x + dx, y + dy);
+        }
+    }
+    // Land occasionally
+    const below = this.getElementAt(x, y + 1);
+    if (below.type === 'solid' && Math.random() < 0.01) {
+        // Stay still
+    }
+  }
+
+  interactBug(x: number, y: number) {
+    // Bugs crawl on solids
+    const below = this.getElementAt(x, y + 1);
+    if (below.id === 0) {
+        this.updatePowder(x, y, ELEMENTS[106]); // Fall like powder
+        return;
+    }
+
+    if (Math.random() < 0.1) {
+        const dx = Math.random() > 0.5 ? 1 : -1;
+        if (this.getElementAt(x + dx, y).id === 0 && this.getElementAt(x + dx, y + 1).type === 'solid') {
+            this.moveElement(x, y, x + dx, y);
+        } else if (this.getElementAt(x + dx, y - 1).id === 0 && this.getElementAt(x + dx, y).type === 'solid') {
+            this.moveElement(x, y, x + dx, y - 1); // Climb
+        }
+    }
+  }
+
+  saveState(): string {
+      const state = {
+          grid: Array.from(this.grid),
+          tempGrid: Array.from(this.tempGrid),
+          width: this.width,
+          height: this.height
+      };
+      return JSON.stringify(state);
+  }
+
+  loadState(stateStr: string) {
+      try {
+          const state = JSON.parse(stateStr);
+          if (state.width !== this.width || state.height !== this.height) {
+              console.error("Save state dimensions mismatch");
+              return;
+          }
+          this.grid.set(state.grid);
+          this.tempGrid.set(state.tempGrid);
+          this.nextGrid.set(state.grid);
+          this.nextTempGrid.set(state.tempGrid);
+      } catch (e) {
+          console.error("Failed to load state", e);
       }
   }
 

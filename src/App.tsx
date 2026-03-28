@@ -237,6 +237,23 @@ export default function App() {
     }
   };
 
+  const handleSave = () => {
+    if (!engineRef.current) return;
+    const state = engineRef.current.saveState();
+    localStorage.setItem('sandengine_save', state);
+    alert('World saved to local storage!');
+  };
+
+  const handleLoad = () => {
+    if (!engineRef.current) return;
+    const state = localStorage.getItem('sandengine_save');
+    if (state) {
+      engineRef.current.loadState(state);
+    } else {
+      alert('No save found!');
+    }
+  };
+
   const categories = ['Land', 'Liquids', 'Life', 'Powders', 'Solids', 'Energy', 'Gases', 'Special', 'AI'];
   
   const filteredElements = Object.values(ELEMENTS).filter(el => {
@@ -254,8 +271,8 @@ export default function App() {
     if (category === 'Solids') return el.type === 'solid' && ![4, 93, 94].includes(el.id);
     if (category === 'Gases') return el.type === 'gas';
     if (category === 'Energy') return el.type === 'fire' || el.id === 28;
-    if (category === 'Life') return el.id === 20 || el.id === 21;
-    if (category === 'Special') return el.type === 'special' && el.id !== 20 && el.id !== 21;
+    if (category === 'Life') return [20, 21, 101, 102, 103, 104, 105, 106].includes(el.id);
+    if (category === 'Special') return el.type === 'special' && ![20, 21, 101, 102, 103, 104, 105, 106].includes(el.id);
     return true;
   });
 
@@ -320,6 +337,12 @@ export default function App() {
           </button>
           <button onClick={clearGrid} className="pixel-btn bg-red-900 text-red-400">
             Reset
+          </button>
+          <button onClick={handleSave} className="pixel-btn bg-blue-900 text-blue-400">
+            Save
+          </button>
+          <button onClick={handleLoad} className="pixel-btn bg-green-900 text-green-400">
+            Load
           </button>
           <div className="flex items-center gap-2 bg-[#222] px-2 py-1 border-2 border-[#444]">
             <span className="text-[8px] text-gray-500">Brush:</span>
